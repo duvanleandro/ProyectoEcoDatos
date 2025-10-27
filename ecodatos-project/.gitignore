@@ -1,0 +1,38 @@
+# Node modules
+node_modules/
+*/node_modules/
+**/node_modules/
+
+# Archivos de entorno (NO subir contraseñas)
+.env
+*.env
+**/.env
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Build
+dist/
+build/
+*.local
+
+# Cache
+.vite/
+.cache/
+**/.vite/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporal
+*.tmp
+temp/
