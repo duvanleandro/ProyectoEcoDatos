@@ -32,4 +32,4 @@ mkdir -p backend/gateway/{src/{routes,middleware,config},tests}
 # Shared libraries
 mkdir -p backend/shared/{database,utils,types}
 
-echo "✅ Estructura de carpetas creada exitosamente"
+echo "Estructura de carpetas creadas
