@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Menu, X, LogOut, User } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Menu, X, LogOut, User, ArrowLeft } from 'lucide-react';
 
 function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
 
   const handleLogout = () => {
@@ -12,6 +13,13 @@ function Layout({ children }) {
     localStorage.removeItem('usuario');
     navigate('/login');
   };
+
+  const handleVolver = () => {
+    navigate('/dashboard');
+  };
+
+  // Mostrar botón volver solo si NO estamos en el dashboard
+  const mostrarBotonVolver = location.pathname !== '/dashboard';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -31,6 +39,17 @@ function Layout({ children }) {
               </div>
               <span className="text-xl font-bold">EcoDatos</span>
             </div>
+            
+            {/* Botón Volver */}
+            {mostrarBotonVolver && (
+              <button
+                onClick={handleVolver}
+                className="ml-4 bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg flex items-center gap-2 transition"
+              >
+                <ArrowLeft size={18} />
+                <span className="hidden sm:inline">Volver al menú</span>
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-4">

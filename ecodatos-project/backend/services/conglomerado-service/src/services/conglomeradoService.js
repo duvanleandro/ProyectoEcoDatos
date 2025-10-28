@@ -151,6 +151,29 @@ class ConglomeradoService {
   }
 
   /**
+   * Eliminar conglomerado
+   */
+  async eliminarConglomerado(id) {
+    try {
+      const conglomerado = await Conglomerado.findByPk(id);
+      
+      if (!conglomerado) {
+        throw new Error('Conglomerado no encontrado');
+      }
+      
+      // Eliminar subparcelas asociadas primero
+      await Subparcela.destroy({ where: { id_conglomerado: id } });
+      
+      // Eliminar conglomerado
+      await conglomerado.destroy();
+      
+      return { message: 'Conglomerado eliminado exitosamente' };
+    } catch (error) {
+      throw new Error('Error al eliminar conglomerado: ' + error.message);
+    }
+  }
+
+  /**
    * Obtener estadísticas
    */
   async obtenerEstadisticas() {

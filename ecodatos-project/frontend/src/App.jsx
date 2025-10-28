@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
 import ListaConglomerados from './pages/conglomerados/ListaConglomerados';
+import GenerarConglomerados from './pages/conglomerados/GenerarConglomerados';
 
 // Componente para proteger rutas (requiere autenticación)
 function ProtectedRoute({ children }) {
@@ -41,8 +42,16 @@ function App() {
           } 
         />
 
+        <Route 
+          path="/conglomerados/registrar" 
+          element={
+            <ProtectedRoute>
+              <GenerarConglomerados />
+            </ProtectedRoute>
+          } 
+        />
+
         {/* Rutas pendientes (por ahora redirigen al dashboard) */}
-        <Route path="/conglomerados/registrar" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/conglomerados/filtrar" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/conglomerados/ubicacion" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/brigadas/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

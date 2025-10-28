@@ -20,4 +20,7 @@ router.put('/:id/aprobar', conglomeradoController.aprobar);
 // PUT /api/conglomerados/:id/rechazar - Rechazar conglomerado
 router.put('/:id/rechazar', conglomeradoController.rechazar);
 
+// DELETE /api/conglomerados/:id - Eliminar conglomerado
+router.delete('/:id', conglomeradoController.eliminar);
+
 module.exports = router;

@@ -1,0 +1,83 @@
+.
+├── backend
+│   ├── gateway
+│   │   ├── package.json
+│   │   ├── package-lock.json
+│   │   ├── src
+│   │   │   ├── config
+│   │   │   ├── middleware
+│   │   │   └── routes
+│   │   └── tests
+│   ├── services
+│   │   ├── auth-service
+│   │   │   ├── package.json
+│   │   │   ├── package-lock.json
+│   │   │   ├── src
+│   │   │   └── tests
+│   │   ├── brigada-service
+│   │   │   ├── package.json
+│   │   │   ├── package-lock.json
+│   │   │   ├── src
+│   │   │   └── tests
+│   │   ├── conglomerado-service
+│   │   │   ├── package.json
+│   │   │   ├── package-lock.json
+│   │   │   ├── src
+│   │   │   └── tests
+│   │   ├── especie-service
+│   │   │   ├── package.json
+│   │   │   ├── package-lock.json
+│   │   │   ├── src
+│   │   │   └── tests
+│   │   └── observacion-service
+│   │       ├── package.json
+│   │       ├── package-lock.json
+│   │       ├── src
+│   │       └── tests
+│   └── shared
+│       ├── database
+│       ├── types
+│       └── utils
+├── create_structure.sh
+├── docker
+├── docs
+├── estructura_proyecto.txt
+└── frontend
+    ├── eslint.config.js
+    ├── index.html
+    ├── package.json
+    ├── package-lock.json
+    ├── postcss.config.js
+    ├── public
+    │   └── vite.svg
+    ├── README.md
+    ├── src
+    │   ├── App.css
+    │   ├── App.jsx
+    │   ├── assets
+    │   │   ├── css
+    │   │   ├── images
+    │   │   └── react.svg
+    │   ├── components
+    │   │   ├── admin
+    │   │   ├── auth
+    │   │   ├── brigadas
+    │   │   ├── common
+    │   │   ├── conglomerados
+    │   │   └── maps
+    │   ├── contexts
+    │   ├── hooks
+    │   ├── index.css
+    │   ├── main.jsx
+    │   ├── pages
+    │   │   ├── admin
+    │   │   ├── auth
+    │   │   ├── brigadas
+    │   │   ├── conglomerados
+    │   │   └── dashboard
+    │   ├── services
+    │   └── utils
+    ├── tailwind.config.js
+    └── vite.config.js
+
+53 directories, 28 files
