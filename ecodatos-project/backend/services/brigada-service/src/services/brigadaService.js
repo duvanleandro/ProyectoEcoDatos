@@ -5,13 +5,56 @@ const { sequelize } = require('../config/database');
 
 class BrigadaService {
   /**
+   * Validar composición de brigada y actualizar estado
+   */
+  async validarYActualizarEstado(id_brigada) {
+    try {
+      // Obtener integrantes de la brigada
+      const integrantes = await sequelize.query(`
+        SELECT i.rol
+        FROM integrante i
+        INNER JOIN brigadaintegrante bi ON i.id = bi.id_integrante
+        WHERE bi.id_brigada = :id_brigada
+      `, {
+        replacements: { id_brigada },
+        type: sequelize.QueryTypes.SELECT
+      });
+
+      // Contar por rol
+      const jefes = integrantes.filter(i => i.rol === 'jefe_brigada').length;
+      const botanicos = integrantes.filter(i => i.rol === 'botanico').length;
+      const tecnicos = integrantes.filter(i => i.rol === 'tecnico_auxiliar').length;
+      const coinvestigadores = integrantes.filter(i => i.rol === 'coinvestigador').length;
+
+      // Validar composición
+      const esValida = jefes === 1 && botanicos >= 1 && tecnicos >= 1 && coinvestigadores >= 1;
+
+      // Actualizar estado de la brigada
+      await sequelize.query(`
+        UPDATE brigada
+        SET activo = :activo
+        WHERE id = :id_brigada
+      `, {
+        replacements: { activo: esValida, id_brigada },
+        type: sequelize.QueryTypes.UPDATE
+      });
+
+      return esValida;
+    } catch (error) {
+      console.error('Error al validar composición:', error);
+      return false;
+    }
+  }
+
+  /**
    * Crear una nueva brigada
    */
   async crearBrigada(data) {
     try {
       const brigada = await Brigada.create({
         nombre: data.nombre,
-        zona_designada: data.zona_designada || null
+        zona_designada: data.zona_designada || null,
+        activo: false // Por defecto inactiva hasta que tenga integrantes
       });
       
       return brigada;
@@ -74,10 +117,33 @@ class BrigadaService {
   }
 
   /**
+   * Eliminar brigada
+   */
+  async eliminarBrigada(id) {
+    try {
+      const brigada = await Brigada.findByPk(id);
+      if (!brigada) {
+        throw new Error('Brigada no encontrada');
+      }
+
+      await brigada.destroy();
+      return { message: 'Brigada eliminada exitosamente' };
+    } catch (error) {
+      throw new Error('Error al eliminar brigada: ' + error.message);
+    }
+  }
+
+  /**
    * Asignar brigada a conglomerado
    */
   async asignarConglomerado(id_brigada, id_conglomerado) {
     try {
+      // Verificar que la brigada esté activa
+      const brigada = await Brigada.findByPk(id_brigada);
+      if (!brigada || !brigada.activo) {
+        throw new Error('La brigada debe estar activa (con todos sus integrantes asignados) para poder asignar conglomerados');
+      }
+
       // Verificar si ya existe la asignación
       const existente = await BrigadaConglomerado.findOne({
         where: { id_brigada, id_conglomerado }
@@ -136,6 +202,32 @@ class BrigadaService {
   }
 
   /**
+   * Eliminar asignación de conglomerado
+   */
+  async eliminarAsignacion(id_brigada, id_conglomerado) {
+    try {
+      // Eliminar asignación
+      await BrigadaConglomerado.destroy({
+        where: { id_brigada, id_conglomerado }
+      });
+      
+      // Volver el conglomerado a estado "Aprobado"
+      await sequelize.query(`
+        UPDATE conglomerado 
+        SET estado = 'Aprobado' 
+        WHERE id = :id_conglomerado AND estado = 'Asignado'
+      `, {
+        replacements: { id_conglomerado },
+        type: sequelize.QueryTypes.UPDATE
+      });
+      
+      return { message: 'Asignación eliminada exitosamente' };
+    } catch (error) {
+      throw new Error('Error al eliminar asignación: ' + error.message);
+    }
+  }
+
+  /**
    * Crear integrante
    */
   async crearIntegrante(data) {
@@ -174,6 +266,16 @@ class BrigadaService {
    */
   async agregarIntegrante(id_brigada, id_integrante) {
     try {
+      // Primero eliminar todos los integrantes actuales
+      await sequelize.query(`
+        DELETE FROM brigadaintegrante
+        WHERE id_brigada = :id_brigada
+      `, {
+        replacements: { id_brigada },
+        type: sequelize.QueryTypes.DELETE
+      });
+
+      // Luego agregar el integrante
       await sequelize.query(`
         INSERT INTO brigadaintegrante (id_brigada, id_integrante)
         VALUES (:id_brigada, :id_integrante)
@@ -183,9 +285,50 @@ class BrigadaService {
         type: sequelize.QueryTypes.INSERT
       });
       
+      // Validar y actualizar estado
+      await this.validarYActualizarEstado(id_brigada);
+      
       return { message: 'Integrante agregado a la brigada' };
     } catch (error) {
       throw new Error('Error al agregar integrante: ' + error.message);
+    }
+  }
+
+  /**
+   * Asignar múltiples integrantes a brigada
+   */
+  async asignarIntegrantes(id_brigada, integrantes_ids) {
+    try {
+      // Primero eliminar todos los integrantes actuales
+      await sequelize.query(`
+        DELETE FROM brigadaintegrante
+        WHERE id_brigada = :id_brigada
+      `, {
+        replacements: { id_brigada },
+        type: sequelize.QueryTypes.DELETE
+      });
+
+      // Agregar todos los nuevos integrantes
+      for (const id_integrante of integrantes_ids) {
+        await sequelize.query(`
+          INSERT INTO brigadaintegrante (id_brigada, id_integrante)
+          VALUES (:id_brigada, :id_integrante)
+          ON CONFLICT DO NOTHING
+        `, {
+          replacements: { id_brigada, id_integrante },
+          type: sequelize.QueryTypes.INSERT
+        });
+      }
+      
+      // Validar y actualizar estado
+      const esValida = await this.validarYActualizarEstado(id_brigada);
+      
+      return { 
+        message: 'Integrantes asignados exitosamente',
+        brigada_activa: esValida
+      };
+    } catch (error) {
+      throw new Error('Error al asignar integrantes: ' + error.message);
     }
   }
 

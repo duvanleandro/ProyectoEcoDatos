@@ -15,13 +15,13 @@ const Usuario = sequelize.define('Usuario', {
   contraseña: {
     type: DataTypes.STRING(255),
     allowNull: false,
-    field: 'contraseña'  // Nombre real de la columna en la BD
+    field: 'contraseña'
   },
   tipo_usuario: {
     type: DataTypes.STRING(20),
     defaultValue: 'brigadista',
     validate: {
-      isIn: [['admin', 'brigadista', 'laboratorio', 'coordinador']]
+      isIn: [['admin', 'jefe_brigada', 'botanico', 'tecnico_auxiliar', 'coinvestigador', 'laboratorio', 'coordinador']]
     }
   },
   id_integrante: {

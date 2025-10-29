@@ -33,6 +33,15 @@ const iconAprobado = new L.Icon({
   shadowSize: [41, 41]
 });
 
+const iconAsignado = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
 const iconRechazado = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -280,6 +289,8 @@ function GenerarConglomerados() {
     switch(estado) {
       case 'Aprobado':
         return iconAprobado;
+      case 'Asignado':
+        return iconAsignado;
       case 'Rechazado':
         return iconRechazado;
       default:
@@ -323,6 +334,7 @@ function GenerarConglomerados() {
                   <option value="Todos">Todos ({conglomerados.length})</option>
                   <option value="Pendiente">Pendientes ({estadisticas?.pendientes || 0})</option>
                   <option value="Aprobado">Aprobados ({estadisticas?.aprobados || 0})</option>
+                  <option value="Asignado">Asignados ({estadisticas?.asignados || 0})</option>
                   <option value="Rechazado">Rechazados ({estadisticas?.rechazados || 0})</option>
                 </select>
               </div>
@@ -420,6 +432,7 @@ function GenerarConglomerados() {
                         </p>
                         <span className={`inline-block px-2 py-1 rounded text-xs mt-2 ${
                           cong.estado === 'Aprobado' ? 'bg-green-100 text-green-800' :
+                          cong.estado === 'Asignado' ? 'bg-blue-100 text-blue-800' :
                           cong.estado === 'Rechazado' ? 'bg-red-100 text-red-800' :
                           'bg-yellow-100 text-yellow-800'
                         }`}>
@@ -529,13 +542,13 @@ function GenerarConglomerados() {
                 <p className="text-xs text-gray-600">Aprobados</p>
                 <p className="text-xl font-bold text-green-600">{estadisticas.aprobados}</p>
               </div>
-              <div className="bg-red-50 p-3 rounded-lg shadow">
-                <p className="text-xs text-gray-600">Rechazados</p>
-                <p className="text-xl font-bold text-red-600">{estadisticas.rechazados}</p>
-              </div>
               <div className="bg-blue-50 p-3 rounded-lg shadow">
                 <p className="text-xs text-gray-600">Asignados</p>
                 <p className="text-xl font-bold text-blue-600">{estadisticas.asignados}</p>
+              </div>
+              <div className="bg-red-50 p-3 rounded-lg shadow">
+                <p className="text-xs text-gray-600">Rechazados</p>
+                <p className="text-xl font-bold text-red-600">{estadisticas.rechazados}</p>
               </div>
               <div className="bg-purple-50 p-3 rounded-lg shadow">
                 <p className="text-xs text-gray-600">Completados</p>
@@ -577,6 +590,7 @@ function GenerarConglomerados() {
                       <p className="text-sm mb-1">
                         <strong>Estado:</strong> <span className={`font-semibold ${
                           cong.estado === 'Aprobado' ? 'text-green-600' :
+                          cong.estado === 'Asignado' ? 'text-blue-600' :
                           cong.estado === 'Rechazado' ? 'text-red-600' :
                           'text-yellow-600'
                         }`}>{cong.estado}</span>
@@ -626,6 +640,10 @@ function GenerarConglomerados() {
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-green-500 rounded-full"></div>
                 <span>Aprobado</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                <span>Asignado</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-red-500 rounded-full"></div>

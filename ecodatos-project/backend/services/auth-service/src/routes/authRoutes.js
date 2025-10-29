@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 
-// POST /api/auth/register - Registrar nuevo usuario
+// Autenticación
 router.post('/register', authController.register);
-
-// POST /api/auth/login - Iniciar sesión
 router.post('/login', authController.login);
-
-// GET /api/auth/verify - Verificar token
 router.get('/verify', authController.verificar);
+
+// Gestión de usuarios (solo admin)
+router.post('/crear-usuario', authController.crearUsuario);
+router.get('/usuarios', authController.listarUsuarios);
+router.delete('/usuarios/:id', authController.eliminarUsuario);
 
 module.exports = router;

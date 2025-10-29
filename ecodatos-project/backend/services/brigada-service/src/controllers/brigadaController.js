@@ -10,7 +10,7 @@ class BrigadaController {
       
       res.status(201).json({
         success: true,
-        message: 'Brigada creada exitosamente',
+        message: 'Brigada creada exitosamente. Asigna integrantes para activarla.',
         data: brigada
       });
     } catch (error) {
@@ -68,6 +68,26 @@ class BrigadaController {
   }
 
   /**
+   * DELETE /api/brigadas/:id
+   */
+  async eliminarBrigada(req, res) {
+    try {
+      const { id } = req.params;
+      const resultado = await brigadaService.eliminarBrigada(id);
+      
+      res.status(200).json({
+        success: true,
+        message: resultado.message
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
    * POST /api/brigadas/:id/asignar-conglomerado
    */
   async asignarConglomerado(req, res) {
@@ -107,6 +127,29 @@ class BrigadaController {
       });
     } catch (error) {
       res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/brigadas/:id/asignar-conglomerado/:id_conglomerado
+   */
+  async eliminarAsignacion(req, res) {
+    try {
+      const { id, id_conglomerado } = req.params;
+      const resultado = await brigadaService.eliminarAsignacion(
+        parseInt(id),
+        parseInt(id_conglomerado)
+      );
+      
+      res.status(200).json({
+        success: true,
+        message: resultado.message
+      });
+    } catch (error) {
+      res.status(400).json({
         success: false,
         message: error.message
       });
@@ -168,6 +211,32 @@ class BrigadaController {
       res.status(200).json({
         success: true,
         message: resultado.message
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * POST /api/brigadas/:id/asignar-integrantes (múltiples)
+   */
+  async asignarIntegrantes(req, res) {
+    try {
+      const { id } = req.params;
+      const { integrantes } = req.body;
+      
+      const resultado = await brigadaService.asignarIntegrantes(
+        parseInt(id),
+        integrantes
+      );
+      
+      res.status(200).json({
+        success: true,
+        message: resultado.message,
+        data: { brigada_activa: resultado.brigada_activa }
       });
     } catch (error) {
       res.status(400).json({

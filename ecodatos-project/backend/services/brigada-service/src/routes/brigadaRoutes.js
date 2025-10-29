@@ -13,12 +13,17 @@ router.get('/integrantes', brigadaController.listarIntegrantes);
 router.post('/', brigadaController.crear);
 router.get('/', brigadaController.listar);
 router.get('/:id', brigadaController.obtenerPorId);
+router.delete('/:id', brigadaController.eliminarBrigada);
 
-// Asignaciones
+// Asignar múltiples integrantes
+router.post('/:id/asignar-integrantes', brigadaController.asignarIntegrantes);
+
+// Asignaciones de conglomerados
 router.post('/:id/asignar-conglomerado', brigadaController.asignarConglomerado);
 router.get('/:id/conglomerados', brigadaController.obtenerConglomerados);
+router.delete('/:id/asignar-conglomerado/:id_conglomerado', brigadaController.eliminarAsignacion);
 
-// Agregar integrante a brigada
+// Agregar integrante a brigada (individual)
 router.post('/:id/integrantes', brigadaController.agregarIntegrante);
 
 module.exports = router;
