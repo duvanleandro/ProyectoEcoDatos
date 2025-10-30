@@ -33,7 +33,7 @@ sudo -u postgres psql -d ecodatos << 'EOSQL'
 -- Deshabilitar restricciones de foreign key temporalmente
 SET session_replication_role = 'replica';
 
--- 1. ELIMINAR DATOS DE TODAS LAS TABLAS (excepto admin en usuarios)
+-- 1. ELIMINAR DATOS DE TODAS LAS TABLAS
 TRUNCATE TABLE brigadaconglomerado CASCADE;
 TRUNCATE TABLE brigadaintegrante CASCADE;
 TRUNCATE TABLE conglomeradosubparcela CASCADE;
@@ -41,7 +41,6 @@ TRUNCATE TABLE subparcelamuestra CASCADE;
 TRUNCATE TABLE muestraespecie CASCADE;
 TRUNCATE TABLE conglomeradoindicador CASCADE;
 TRUNCATE TABLE clasificaciontaxonomica CASCADE;
-TRUNCATE TABLE verificaciongeolocation CASCADE;
 
 TRUNCATE TABLE subparcela CASCADE;
 TRUNCATE TABLE muestra CASCADE;
@@ -50,12 +49,13 @@ TRUNCATE TABLE indicador CASCADE;
 TRUNCATE TABLE conglomerado CASCADE;
 TRUNCATE TABLE brigada CASCADE;
 TRUNCATE TABLE integrante CASCADE;
+TRUNCATE TABLE proyectobrigada CASCADE;
 
--- Eliminar todos los usuarios excepto admin (id = 1)
-DELETE FROM usuarios WHERE id > 1;
+-- Eliminar todos los usuarios
+TRUNCATE TABLE usuarios CASCADE;
 
 -- 2. REINICIAR SECUENCIAS (IDs) A 1
-ALTER SEQUENCE usuarios_id_seq RESTART WITH 2;
+ALTER SEQUENCE usuarios_id_seq RESTART WITH 1;
 ALTER SEQUENCE integrante_id_seq RESTART WITH 1;
 ALTER SEQUENCE brigada_id_seq RESTART WITH 1;
 ALTER SEQUENCE conglomerado_id_seq RESTART WITH 1;
@@ -64,12 +64,22 @@ ALTER SEQUENCE muestra_id_seq RESTART WITH 1;
 ALTER SEQUENCE especie_id_seq RESTART WITH 1;
 ALTER SEQUENCE indicador_id_seq RESTART WITH 1;
 ALTER SEQUENCE clasificaciontaxonomica_id_seq RESTART WITH 1;
-ALTER SEQUENCE verificaciongeolocation_id_seq RESTART WITH 1;
+
+-- 3. RECREAR USUARIO ADMIN
+-- Contraseña: 1234 (hash bcrypt generado)
+INSERT INTO usuarios (usuario, contraseña, tipo_usuario, activo, fecha_creacion) 
+VALUES (
+  'admin', 
+  '$2b$10$aTf9gmgY7RZTqbE1jL0pSu85.5HcuGXtYu0sg0GQELCKLt8itnQK.',
+  'admin', 
+  true, 
+  CURRENT_TIMESTAMP
+);
 
 -- Rehabilitar restricciones
 SET session_replication_role = 'origin';
 
--- 3. VERIFICAR ESTADO
+-- 4. VERIFICAR ESTADO
 SELECT 'Usuarios restantes:' as tabla, COUNT(*) as total FROM usuarios
 UNION ALL
 SELECT 'Integrantes:', COUNT(*) FROM integrante
@@ -78,15 +88,22 @@ SELECT 'Brigadas:', COUNT(*) FROM brigada
 UNION ALL
 SELECT 'Conglomerados:', COUNT(*) FROM conglomerado
 UNION ALL
-SELECT 'Subparcelas:', COUNT(*) FROM subparcela;
+SELECT 'Subparcelas:', COUNT(*) FROM subparcela
+UNION ALL
+SELECT 'Especies:', COUNT(*) FROM especie;
+
+-- 5. MOSTRAR USUARIO ADMIN CREADO
+SELECT 'Usuario admin creado:' as info, id, usuario, tipo_usuario FROM usuarios WHERE usuario = 'admin';
 
 EOSQL
 
 echo ""
 echo -e "${GREEN}✅ Base de datos reseteada exitosamente${NC}"
-echo -e "${GREEN}✅ Solo queda el usuario admin (id=1)${NC}"
+echo -e "${GREEN}✅ Usuario admin recreado (ID=1)${NC}"
 echo -e "${GREEN}✅ Todas las secuencias reiniciadas${NC}"
 echo ""
-echo -e "${YELLOW}📝 Próximos usuarios/entidades comenzarán desde ID 2${NC}"
+echo -e "${YELLOW}📝 Credenciales de acceso:${NC}"
+echo -e "${YELLOW}   Usuario: admin${NC}"
+echo -e "${YELLOW}   Contraseña: 1234${NC}"
 echo ""
 

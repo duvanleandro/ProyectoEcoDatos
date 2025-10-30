@@ -8,6 +8,7 @@ import MisConglomerados from './pages/brigadas/MisConglomerados';
 import GestionBrigadas from './pages/brigadas/GestionBrigadas';
 import GestionUsuarios from './pages/admin/GestionUsuarios';
 import GestionEspecies from './pages/especies/GestionEspecies';
+import ConsultaEspecies from './pages/especies/ConsultaEspecies';
 
 // Componente para proteger rutas (requiere autenticación)
 function ProtectedRoute({ children }) {
@@ -100,6 +101,15 @@ function App() {
           element={
             <ProtectedRoute>
               <GestionEspecies />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/especies/consulta" 
+          element={
+            <ProtectedRoute>
+              <ConsultaEspecies />
             </ProtectedRoute>
           } 
         />

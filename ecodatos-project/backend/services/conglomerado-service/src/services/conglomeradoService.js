@@ -151,6 +151,26 @@ class ConglomeradoService {
   }
 
   /**
+   * Cambiar estado del conglomerado
+   */
+  async cambiarEstado(id, nuevoEstado) {
+    try {
+      const conglomerado = await Conglomerado.findByPk(id);
+      
+      if (!conglomerado) {
+        throw new Error('Conglomerado no encontrado');
+      }
+      
+      conglomerado.estado = nuevoEstado;
+      await conglomerado.save();
+      
+      return conglomerado;
+    } catch (error) {
+      throw new Error('Error al cambiar estado: ' + error.message);
+    }
+  }
+
+  /**
    * Eliminar conglomerado
    */
   async eliminarConglomerado(id) {
