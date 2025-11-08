@@ -156,53 +156,12 @@ class ConglomeradoService {
    * Si cambia a En_Proceso -> Crea observación automática con hora_inicio
    * Si cambia a Completado -> Actualiza observación con hora_fin
    */
-    async cambiarEstado(id, nuevoEstado) {
+  async cambiarEstado(id, nuevoEstado) {
     try {
       const conglomerado = await Conglomerado.findByPk(id);
       
       if (!conglomerado) {
         throw new Error('Conglomerado no encontrado');
-      }
-
-      // VALIDACIÓN: Si intenta cambiar a En_Proceso
-      if (nuevoEstado === 'En_Proceso') {
-        // 1. Verificar que no tengan otro en proceso
-        const enProcesoExistente = await Conglomerado.findOne({
-          where: {
-            brigada_id: conglomerado.brigada_id,
-            estado: 'En_Proceso'
-          }
-        });
-
-        if (enProcesoExistente && enProcesoExistente.id !== id) {
-          throw new Error(`Ya existe un conglomerado en proceso (${enProcesoExistente.nombre}). Completa ese trabajo antes de iniciar otro.`);
-        }
-
-        // 2. Verificar que no tengan observaciones completadas sin enviar
-        try {
-          const responseCompletados = await axios.get(`http://localhost:3002/api/conglomerados`);
-          const completados = responseCompletados.data.data.filter(
-            c => c.brigada_id === conglomerado.brigada_id && c.estado === 'Completado'
-          );
-
-          for (const comp of completados) {
-            const responseObs = await axios.get(`http://localhost:3005/api/observaciones/conglomerado/${comp.id}`);
-            
-            if (responseObs.data.success && responseObs.data.data.length > 0) {
-              const obs = responseObs.data.data[0];
-              
-              // Si hay observación completada pero NO validada por jefe
-              if (!obs.validado_por_jefe) {
-                throw new Error(`Debes completar y enviar el formulario del conglomerado "${comp.nombre}" antes de iniciar otro.`);
-              }
-            }
-          }
-        } catch (error) {
-          if (error.message.includes('Debes completar')) {
-            throw error; // Re-lanzar el error de validación
-          }
-          console.warn('Error al verificar observaciones completadas:', error.message);
-        }
       }
 
       const estadoAnterior = conglomerado.estado;
@@ -259,7 +218,6 @@ class ConglomeradoService {
       throw new Error('Error al cambiar estado: ' + error.message);
     }
   }
-
 
   /**
    * Eliminar conglomerado

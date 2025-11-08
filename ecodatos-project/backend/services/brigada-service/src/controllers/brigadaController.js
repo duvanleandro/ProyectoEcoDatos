@@ -264,6 +264,33 @@ class BrigadaController {
       });
     }
   }
+
+  /**
+   * GET /api/brigadas/usuario/:idUsuario
+   */
+  async obtenerPorUsuario(req, res) {
+    try {
+      const { idUsuario } = req.params;
+      const brigada = await brigadaService.obtenerBrigadaPorUsuario(idUsuario);
+      
+      if (!brigada) {
+        return res.status(404).json({
+          success: false,
+          message: 'El usuario no pertenece a ninguna brigada'
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: brigada
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 }
 
 module.exports = new BrigadaController();

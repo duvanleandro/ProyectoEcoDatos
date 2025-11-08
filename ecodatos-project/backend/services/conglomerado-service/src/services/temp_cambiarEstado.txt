@@ -1,0 +1,82 @@
+  /**
+   * Cambiar estado del conglomerado
+   * Si cambia a En_Proceso -> Crea observación automática con hora_inicio
+   * Si cambia a Completado -> Actualiza observación con hora_fin
+   * VALIDACIÓN: Solo puede haber 1 conglomerado En_Proceso por brigada
+   */
+  async cambiarEstado(id, nuevoEstado) {
+    try {
+      const conglomerado = await Conglomerado.findByPk(id);
+      
+      if (!conglomerado) {
+        throw new Error('Conglomerado no encontrado');
+      }
+
+      // VALIDACIÓN: Si intenta cambiar a En_Proceso, verificar que no tengan otro en proceso
+      if (nuevoEstado === 'En_Proceso') {
+        const enProcesoExistente = await Conglomerado.findOne({
+          where: {
+            brigada_id: conglomerado.brigada_id,
+            estado: 'En_Proceso'
+          }
+        });
+
+        if (enProcesoExistente && enProcesoExistente.id !== id) {
+          throw new Error(`Ya existe un conglomerado en proceso (${enProcesoExistente.nombre}). Completa ese trabajo antes de iniciar otro.`);
+        }
+      }
+
+      const estadoAnterior = conglomerado.estado;
+      conglomerado.estado = nuevoEstado;
+      await conglomerado.save();
+
+      // LÓGICA AUTOMÁTICA: Crear/Actualizar observación
+      if (nuevoEstado === 'En_Proceso' && estadoAnterior === 'Asignado') {
+        // Crear observación automática con hora_inicio
+        try {
+          const horaActual = new Date().toTimeString().split(' ')[0]; // HH:MM:SS
+          
+          await axios.post('http://localhost:3005/api/observaciones', {
+            id_conglomerado: conglomerado.id,
+            id_brigada: conglomerado.brigada_id,
+            fecha_observacion: new Date().toISOString().split('T')[0],
+            hora_inicio: horaActual,
+            registrado_por: 1 // TODO: Obtener del contexto
+          });
+
+          console.log(`✅ Observación creada automáticamente para conglomerado ${id}`);
+        } catch (error) {
+          console.error('Error al crear observación automática:', error.message);
+          // No lanzar error para no bloquear el cambio de estado
+        }
+      }
+
+      if (nuevoEstado === 'Completado' && estadoAnterior === 'En_Proceso') {
+        // Actualizar observación con hora_fin
+        try {
+          const horaActual = new Date().toTimeString().split(' ')[0]; // HH:MM:SS
+          
+          // Buscar la observación del conglomerado
+          const responseObs = await axios.get(`http://localhost:3005/api/observaciones/conglomerado/${id}`);
+          
+          if (responseObs.data.success && responseObs.data.data.length > 0) {
+            const observacion = responseObs.data.data[0];
+            
+            // Actualizar con hora_fin
+            await axios.put(`http://localhost:3005/api/observaciones/${observacion.id}`, {
+              hora_fin: horaActual
+            });
+
+            console.log(`✅ Observación actualizada con hora_fin para conglomerado ${id}`);
+          }
+        } catch (error) {
+          console.error('Error al actualizar observación con hora_fin:', error.message);
+          // No lanzar error para no bloquear el cambio de estado
+        }
+      }
+      
+      return conglomerado;
+    } catch (error) {
+      throw new Error('Error al cambiar estado: ' + error.message);
+    }
+  }

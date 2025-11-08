@@ -1,373 +1,645 @@
-# EcoDatos - Proyecto Integrador 5to Semestre
+# 🌳 EcoDatos - Sistema de Inventario Forestal Nacional
 
-Sistema web para el Inventario Forestal Nacional del IDEAM (Colombia).
+Sistema web integral para la gestión del Inventario Forestal Nacional de Colombia (IDEAM), desarrollado con arquitectura de microservicios.
 
-## Integrantes del Equipo
+## 👥 Equipo de Desarrollo
+
+**Integrantes:**
 - Duvan Leandro Pedraza Gonzalez
 - Stefany Dayana Medina Galvis
+- Juan Daniel Quinchanegua
+- Jonathan Arley Monsalve Salazar
+- Duvan Ramirez Molina
 
 **Grupo:** 5A  
-**Período:** 2025-2
+**Institución:** Universidad de Investigación y Desarrollo  
+**Período:** 2025-1  
+**Nivel:** Quinto Semestre - Ingeniería de Sistemas
 
 ---
 
-## ¿Qué hace este proyecto?
+## 📋 Descripción del Proyecto
 
-Es un sistema web que ayuda al IDEAM a manejar el Inventario Forestal Nacional. Permite:
-- Registrar conglomerados forestales (zonas de muestreo)
-- Asignar brigadas de campo a cada conglomerado
-- Llevar registro de especies de plantas encontradas
-- Ver mapas con la ubicación de los conglomerados
-- Guardar observaciones de campo (clima, fotos, notas)
+EcoDatos es una plataforma completa para la gestión de conglomerados forestales, brigadas de campo, y recolección de datos del Inventario Forestal Nacional (IFN) de Colombia. El sistema permite generar conglomerados georreferenciados, asignar brigadas de trabajo, y realizar el seguimiento completo del proceso de muestreo forestal.
 
----
+### Características Principales
 
-## Tecnologías que usamos
-
-**Frontend (lo que se ve):**
-- React + Vite
-- Tailwind CSS (para los estilos)
-- React Router (para navegar entre páginas)
-
-**Backend (el servidor):**
-- Node.js + Express
-- Microservicios (varios servidores pequeños en lugar de uno grande)
-
-**Bases de Datos:**
-- PostgreSQL (para datos estructurados: usuarios, brigadas, conglomerados)
-- MongoDB (para observaciones flexibles de campo)
+- 🗺️ **Generación automática de conglomerados** con geolocalización en Colombia
+- 👥 **Gestión de brigadas** con validación de composición (jefe, botánico, técnico, coinvestigador)
+- 📊 **Sistema de aprobación** de conglomerados con flujo de estados
+- 🎯 **Asignación inteligente** de brigadas a conglomerados
+- 📱 **Panel de brigadas** para gestión de trabajo en campo
+- 🔐 **Sistema de autenticación** por roles (Admin, Jefe de Brigada)
+- 🗃️ **Base de datos PostgreSQL** con PostGIS para datos geoespaciales
+- 🎨 **Interfaz moderna** con React, TailwindCSS y Leaflet Maps
 
 ---
 
-## Requisitos para ejecutar el proyecto
+## 🏗️ Arquitectura del Sistema
 
-Necesitas tener instalado:
-- Node.js (versión 20 o superior)
-- PostgreSQL (versión 16)
-- MongoDB (versión 8)
+### Arquitectura en Capas
+
+```
+┌─────────────────────────────────────────┐
+│           CAPA DE PRESENTACIÓN          │
+│        (React + Vite + TailwindCSS)     │
+└─────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────┐
+│         CAPA DE MICROSERVICIOS          │
+│  ┌──────────────┐  ┌─────────────────┐ │
+│  │ Auth Service │  │ Conglomerado    │ │
+│  │  (Port 3001) │  │ Service         │ │
+│  └──────────────┘  │ (Port 3002)     │ │
+│                    └─────────────────┘ │
+│  ┌─────────────────────────────────┐   │
+│  │ Brigada Service (Port 3003)     │   │
+│  └─────────────────────────────────┘   │
+└─────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────┐
+│          CAPA DE DATOS                  │
+│   PostgreSQL + PostGIS (Port 5432)      │
+└─────────────────────────────────────────┘
+```
+
+### Microservicios
+
+1. **auth-service** (Puerto 3001)
+   - Autenticación y autorización
+   - Gestión de usuarios
+   - JWT tokens
+
+2. **conglomerado-service** (Puerto 3002)
+   - Generación de conglomerados
+   - Gestión de subparcelas
+   - Aprobación/Rechazo
+   - Estadísticas
+
+3. **brigada-service** (Puerto 3003)
+   - Gestión de brigadas
+   - Gestión de integrantes
+   - Asignación de conglomerados
+   - Validación de composición
+
+---
+
+## 🚀 Tecnologías Utilizadas
+
+### Frontend
+- React 18.3
+- Vite 6.0
+- TailwindCSS 3.4
+- React Router DOM 7.1
+- Leaflet 1.9 (Mapas interactivos)
+- Axios 1.7
+- Lucide React (Iconos)
+
+### Backend
+- Node.js 20.x
+- Express 4.21
+- Sequelize 6.37 (ORM)
+- PostgreSQL 16
+- PostGIS 3.5 (Extensión geoespacial)
+- bcryptjs (Encriptación)
+- jsonwebtoken (Autenticación)
+- CORS
+
+### Base de Datos
+- PostgreSQL 16
+- PostGIS 3.5
+- pg (Node PostgreSQL client)
+
+---
+
+## 📦 Estructura del Proyecto
+
+```
+ecodatos-project/
+├── frontend/                    # Aplicación React
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── common/         # Componentes reutilizables
+│   │   │   │   ├── Layout.jsx
+│   │   │   │   ├── PrivateRoute.jsx
+│   │   │   │   └── Navbar.jsx
+│   │   ├── pages/
+│   │   │   ├── auth/           # Páginas de autenticación
+│   │   │   │   └── Login.jsx
+│   │   │   ├── conglomerados/  # Gestión de conglomerados
+│   │   │   │   ├── GenerarConglomerados.jsx
+│   │   │   │   └── ListaConglomerados.jsx
+│   │   │   ├── brigadas/       # Gestión de brigadas
+│   │   │   │   ├── ListaBrigadas.jsx
+│   │   │   │   ├── AsignarBrigada.jsx
+│   │   │   │   └── MisConglomerados.jsx
+│   │   │   └── Dashboard.jsx
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   └── package.json
+│
+└── backend/
+    └── services/
+        ├── auth-service/       # Microservicio de autenticación
+        │   ├── src/
+        │   │   ├── config/
+        │   │   │   └── database.js
+        │   │   ├── models/
+        │   │   │   └── Usuario.js
+        │   │   ├── controllers/
+        │   │   │   └── authController.js
+        │   │   ├── services/
+        │   │   │   └── authService.js
+        │   │   ├── routes/
+        │   │   │   └── authRoutes.js
+        │   │   └── index.js
+        │   └── package.json
+        │
+        ├── conglomerado-service/  # Microservicio de conglomerados
+        │   ├── src/
+        │   │   ├── config/
+        │   │   │   └── database.js
+        │   │   ├── models/
+        │   │   │   ├── Conglomerado.js
+        │   │   │   └── Subparcela.js
+        │   │   ├── controllers/
+        │   │   │   └── conglomeradoController.js
+        │   │   ├── services/
+        │   │   │   └── conglomeradoService.js
+        │   │   ├── routes/
+        │   │   │   └── conglomeradoRoutes.js
+        │   │   ├── utils/
+        │   │   │   └── geoUtils.js
+        │   │   └── index.js
+        │   └── package.json
+        │
+        └── brigada-service/       # Microservicio de brigadas
+            ├── src/
+            │   ├── config/
+            │   │   └── database.js
+            │   ├── models/
+            │   │   ├── Brigada.js
+            │   │   ├── Integrante.js
+            │   │   └── BrigadaConglomerado.js
+            │   ├── controllers/
+            │   │   └── brigadaController.js
+            │   ├── services/
+            │   │   └── brigadaService.js
+            │   ├── routes/
+            │   │   └── brigadaRoutes.js
+            │   └── index.js
+            └── package.json
+```
+
+---
+
+## 🗄️ Modelo de Base de Datos
+
+### Esquema Principal
+
+```sql
+-- TABLA: usuario
+CREATE TABLE usuario (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(100) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  rol VARCHAR(50) NOT NULL,
+  nombre_completo VARCHAR(200),
+  email VARCHAR(150),
+  fecha_creacion TIMESTAMP DEFAULT NOW()
+);
+
+-- TABLA: conglomerado
+CREATE TABLE conglomerado (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(255) NOT NULL,
+  latitud DECIMAL(10, 8) NOT NULL,
+  longitud DECIMAL(11, 8) NOT NULL,
+  estado VARCHAR(50) DEFAULT 'Pendiente',
+  fecha_creacion TIMESTAMP DEFAULT NOW(),
+  fecha_aprobacion TIMESTAMP,
+  brigada_id INTEGER,
+  brigada_nombre VARCHAR(255),
+  fecha_asignacion TIMESTAMP,
+  ubicacion GEOGRAPHY(POINT, 4326)
+);
+
+-- TABLA: subparcela
+CREATE TABLE subparcela (
+  id SERIAL PRIMARY KEY,
+  id_conglomerado INTEGER REFERENCES conglomerado(id) ON DELETE CASCADE,
+  nombre VARCHAR(100) NOT NULL,
+  latitud DECIMAL(10, 8) NOT NULL,
+  longitud DECIMAL(11, 8) NOT NULL,
+  distancia_metros DECIMAL(10, 2),
+  azimut_grados DECIMAL(5, 2),
+  tipo VARCHAR(50),
+  ubicacion GEOGRAPHY(POINT, 4326)
+);
+
+-- TABLA: brigada
+CREATE TABLE brigada (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(200) NOT NULL,
+  zona_designada VARCHAR(200),
+  activo BOOLEAN DEFAULT FALSE,
+  fecha_creacion TIMESTAMP DEFAULT NOW()
+);
+
+-- TABLA: integrante
+CREATE TABLE integrante (
+  id SERIAL PRIMARY KEY,
+  nombre_apellidos VARCHAR(200) NOT NULL,
+  rol VARCHAR(100) NOT NULL,
+  telefono VARCHAR(50),
+  email VARCHAR(150),
+  especialidad VARCHAR(200)
+);
+
+-- TABLA INTERMEDIA: brigadaintegrante
+CREATE TABLE brigadaintegrante (
+  id_brigada INTEGER REFERENCES brigada(id) ON DELETE CASCADE,
+  id_integrante INTEGER REFERENCES integrante(id) ON DELETE CASCADE,
+  PRIMARY KEY (id_brigada, id_integrante)
+);
+
+-- TABLA INTERMEDIA: brigadaconglomerado
+CREATE TABLE brigadaconglomerado (
+  id_brigada INTEGER REFERENCES brigada(id) ON DELETE CASCADE,
+  id_conglomerado INTEGER REFERENCES conglomerado(id) ON DELETE CASCADE,
+  fecha_asignacion TIMESTAMP DEFAULT NOW(),
+  estado VARCHAR(50) DEFAULT 'Pendiente',
+  PRIMARY KEY (id_brigada, id_conglomerado)
+);
+```
+
+### Estados del Sistema
+
+**Estados de Conglomerado:**
+- `Pendiente` - Recién generado, esperando aprobación
+- `Aprobado` - Aprobado por admin, disponible para asignación
+- `Asignado` - Asignado a una brigada
+- `En_Proceso` - Brigada ha iniciado el trabajo de campo
+- `Completado` - Trabajo de campo finalizado
+- `Rechazado` - Conglomerado rechazado
+
+**Roles de Usuario:**
+- `admin` - Administrador del sistema
+- `jefe_brigada` - Jefe de brigada de campo
+
+**Roles de Integrante de Brigada:**
+- `jefe_brigada` - Líder de la brigada (1 requerido)
+- `botanico` - Especialista botánico (mínimo 1 requerido)
+- `tecnico_auxiliar` - Técnico auxiliar (mínimo 1 requerido)
+- `coinvestigador` - Coinvestigador (mínimo 1 requerido)
+
+---
+
+## ⚙️ Instalación y Configuración
+
+### Prerequisitos
+
+- Node.js 20.x o superior
+- PostgreSQL 16 con PostGIS 3.5
+- npm o yarn
 - Git
-- Un editor de código (nosotros usamos VSCode)
 
----
+### 1. Clonar el Repositorio
 
-## Cómo instalar y ejecutar el proyecto
-
-### 1. Clonar el repositorio
 ```bash
 git clone https://github.com/duvanleandro/ProyectoIntegrador.git
 cd ProyectoIntegrador/ecodatos-project
 ```
 
-### 2. Configurar PostgreSQL
+### 2. Configurar la Base de Datos
 
-Primero, abre PostgreSQL:
 ```bash
-sudo -u postgres psql
-```
+# Conectar a PostgreSQL
+psql -U postgres
 
-Dentro de PostgreSQL ejecuta:
-```sql
--- Crear la base de datos
+# Crear la base de datos
 CREATE DATABASE ecodatos;
 
--- Crear el usuario
-CREATE USER ecodatos WITH PASSWORD 'ecodatos';
+# Conectar a la base de datos
+\c ecodatos
 
--- Dar permisos
-GRANT ALL PRIVILEGES ON DATABASE ecodatos TO ecodatos;
+# Habilitar PostGIS
+CREATE EXTENSION postgis;
 
--- Salir
-\q
+# Ejecutar el script de creación de tablas
+\i backend/database/schema.sql
 ```
 
-**Conectar a la base de datos para verificar:**
+### 3. Configurar Variables de Entorno
+
+Crear archivos `.env` en cada microservicio:
+
+**backend/services/auth-service/.env:**
+```env
+PORT=3001
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=ecodatos
+DB_USER=postgres
+DB_PASSWORD=tu_password
+JWT_SECRET=tu_secret_key_super_segura
+```
+
+**backend/services/conglomerado-service/.env:**
+```env
+PORT=3002
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=ecodatos
+DB_USER=postgres
+DB_PASSWORD=tu_password
+```
+
+**backend/services/brigada-service/.env:**
+```env
+PORT=3003
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=ecodatos
+DB_USER=postgres
+DB_PASSWORD=tu_password
+```
+
+### 4. Instalar Dependencias
+
 ```bash
-sudo -u postgres psql -d ecodatos
-```
+# Frontend
+cd frontend
+npm install
 
-**Ver las tablas que hay:**
-```sql
-\dt
-```
+# Auth Service
+cd ../backend/services/auth-service
+npm install
 
-**Ver estructura de la tabla usuarios:**
-```sql
-\d usuarios
-```
+# Conglomerado Service
+cd ../conglomerado-service
+npm install
 
-**Ver todos los usuarios registrados:**
-```sql
-SELECT * FROM usuarios;
-```
-
-**Salir:**
-```sql
-\q
-```
-
-### 3. Instalar dependencias del Backend
-
-**Auth Service (Autenticación):**
-```bash
-cd backend/services/auth-service
+# Brigada Service
+cd ../brigada-service
 npm install
 ```
 
-### 4. Instalar dependencias del Frontend
+### 5. Iniciar los Servicios
+
+**Opción 1: Terminal única (con tmux o múltiples tabs)**
+
 ```bash
-cd ../../..  # Volver a la raíz
-cd frontend
-npm install
-```
-
-### 5. Ejecutar el proyecto
-
-**Necesitas abrir 2 terminales:**
-
-**Terminal 1 - Backend (Auth Service):**
-```bash
+# Terminal 1 - Auth Service
 cd backend/services/auth-service
 npm run dev
-```
 
-Deberías ver:
-```
-✅ Conexión a PostgreSQL establecida correctamente
-🚀 Auth Service corriendo en http://localhost:3001
-```
+# Terminal 2 - Conglomerado Service
+cd backend/services/conglomerado-service
+npm run dev
 
-**Terminal 2 - Frontend:**
-```bash
+# Terminal 3 - Brigada Service
+cd backend/services/brigada-service
+npm run dev
+
+# Terminal 4 - Frontend
 cd frontend
 npm run dev
 ```
 
-Deberías ver:
+**Opción 2: Script de inicio automático**
+
+```bash
+# Crear un script start-all.sh
+#!/bin/bash
+
+# Iniciar servicios en background
+cd backend/services/auth-service && npm run dev &
+cd backend/services/conglomerado-service && npm run dev &
+cd backend/services/brigada-service && npm run dev &
+cd frontend && npm run dev &
+
+echo "✅ Todos los servicios iniciados"
 ```
-VITE v7.x.x  ready in xxx ms
-➜  Local:   http://localhost:5173/
-```
 
-### 6. Abrir en el navegador
+### 6. Acceder al Sistema
 
-Ve a: **http://localhost:5173**
-
-**Usuario de prueba:**
-- Usuario: `admin`
-- Contraseña: `1234`
+- **Frontend:** http://localhost:5173
+- **Auth Service:** http://localhost:3001
+- **Conglomerado Service:** http://localhost:3002
+- **Brigada Service:** http://localhost:3003
 
 ---
 
-## Estructura del proyecto
+## 👤 Usuarios por Defecto
+
+El sistema incluye usuarios de prueba:
+
+```sql
+-- Admin
+username: admin
+password: admin123
+
+-- Jefe de Brigada
+username: jefe1
+password: jefe123
 ```
-ecodatos-project/
-├── backend/
-│   ├── gateway/              # API Gateway (todavía no implementado)
-│   ├── services/
-│   │   ├── auth-service/     # Autenticación (funcionando)
-│   │   ├── brigada-service/  # Gestión de brigadas (pendiente)
-│   │   ├── conglomerado-service/  # (pendiente)
-│   │   ├── especie-service/  # (pendiente)
-│   │   └── observacion-service/   # (pendiente)
-│   └── shared/               # Código compartido
-├── frontend/
-│   ├── src/
-│   │   ├── pages/
-│   │   │   └── auth/
-│   │   │       └── Login.jsx  # Página de login (funcionando)
-│   │   ├── components/       # Componentes reutilizables
-│   │   └── services/         # Llamadas a la API
-│   └── public/
-└── README.md
+
+Para crear nuevos usuarios, ejecutar:
+
+```sql
+INSERT INTO usuario (username, password, rol, nombre_completo, email)
+VALUES ('nuevo_usuario', '$2a$10$...', 'admin', 'Nombre Completo', 'email@example.com');
 ```
 
 ---
 
-## Problemas comunes y soluciones
+## 📖 Guía de Uso
 
-### ❌ Error: "column contraseña does not exist"
+### Como Administrador
 
-**Solución:** La base de datos usa `contraseña` (con ñ). Asegúrate que el modelo en `backend/services/auth-service/src/models/Usuario.js` tenga:
-```javascript
-contraseña: {
-  type: DataTypes.STRING(255),
-  allowNull: false,
-  field: 'contraseña'
+1. **Generar Conglomerados**
+   - Ir a "Generar Conglomerados"
+   - Especificar cantidad (1-100)
+   - Clic en "Generar"
+   - Los conglomerados aparecen con estado "Pendiente" (amarillo)
+
+2. **Aprobar Conglomerados**
+   - Revisar conglomerados en el mapa
+   - Clic en marcador → "Aprobar" (verde) o "Rechazar" (amarillo)
+   - Al aprobar, se crean 4 subparcelas automáticamente
+
+3. **Gestionar Brigadas**
+   - Ir a "Gestionar Brigadas"
+   - Crear nueva brigada
+   - Agregar integrantes (mínimo: 1 jefe, 1 botánico, 1 técnico, 1 coinvestigador)
+   - La brigada se activa automáticamente al cumplir requisitos
+
+4. **Asignar Conglomerados a Brigadas**
+   - Ir a "Asignar Brigadas"
+   - Seleccionar brigada activa
+   - Seleccionar conglomerado aprobado
+   - Clic en "Asignar Brigada"
+   - El conglomerado cambia a estado "Asignado" (azul)
+
+### Como Jefe de Brigada
+
+1. **Iniciar Sesión**
+   - Username: jefe1
+   - Password: jefe123
+
+2. **Ver Conglomerados Asignados**
+   - Ir a "Mis Conglomerados Asignados"
+   - Ver lista de conglomerados asignados a tu brigada
+
+3. **Iniciar Trabajo de Campo**
+   - Clic en "Iniciar" en un conglomerado
+   - El estado cambia a "En_Proceso" (naranja)
+
+4. **Completar Trabajo**
+   - Clic en "Completar" cuando termines
+   - El estado cambia a "Completado" (morado)
+
+---
+
+## 🗺️ Características del Mapa
+
+### Colores de Marcadores
+
+- 🟡 **Amarillo** - Pendiente
+- 🟢 **Verde** - Aprobado
+- 🔵 **Azul** - Asignado
+- 🟠 **Naranja** - En Proceso
+- 🟣 **Morado** - Completado
+- 🔴 **Rojo** - Rechazado
+
+### Funcionalidades
+
+- Zoom y pan interactivo
+- Clic en marcador para ver detalles
+- Popup con acciones (aprobar, rechazar, eliminar)
+- Búsqueda en lista lateral
+- Filtros por estado
+- Navegación automática al conglomerado seleccionado
+
+---
+
+## 🔒 Seguridad
+
+- ✅ Autenticación JWT
+- ✅ Rutas protegidas por rol
+- ✅ Contraseñas encriptadas con bcrypt
+- ✅ Validación de datos en backend
+- ✅ CORS configurado
+- ✅ Sanitización de inputs
+
+---
+
+## 🧪 Testing
+
+```bash
+# Instalar dependencias de testing
+npm install --save-dev jest supertest
+
+# Ejecutar tests
+npm test
+```
+
+---
+
+## 🐛 Problemas Conocidos
+
+### Error Pendiente: Estadísticas de "En_Proceso"
+
+**Descripción:** El endpoint `/api/conglomerados/estadisticas` devuelve `completados` pero no `en_proceso`.
+
+**Respuesta actual:**
+```json
+{
+  "success": true,
+  "data": {
+    "total": 50,
+    "pendientes": 42,
+    "aprobados": 3,
+    "rechazados": 2,
+    "asignados": 1,
+    "completados": 1
+    // Falta: "en_proceso": X
+  }
 }
 ```
 
-### ❌ Error: "column activo does not exist"
-
-**Solución:** Agrega la columna a PostgreSQL:
-```bash
-sudo -u postgres psql -d ecodatos
-```
-```sql
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
-\q
+**Fix temporal en el frontend:**
+```javascript
+<option value="En_Proceso">
+  En Proceso ({conglomerados.filter(c => c.estado === 'En_Proceso').length})
+</option>
 ```
 
-### ❌ Error: "ECONNREFUSED" al hacer login
-
-**Problema:** El backend no está corriendo.
-
-**Solución:** Abre una terminal y ejecuta:
-```bash
-cd backend/services/auth-service
-npm run dev
-```
-
-### ❌ Error: Tailwind CSS no funciona
-
-**Solución:** Reinstala las dependencias:
-```bash
-cd frontend
-npm uninstall tailwindcss
-npm install -D tailwindcss@3.4.1 postcss autoprefixer
-```
-
-### ❌ MongoDB no está corriendo
-
-**Verificar estado:**
-```bash
-sudo systemctl status mongod
-```
-
-**Iniciar MongoDB:**
-```bash
-sudo systemctl start mongod
-```
+**Solución definitiva:** Actualizar el servicio de estadísticas en el backend para incluir el conteo de conglomerados con estado `En_Proceso`.
 
 ---
 
-## Cómo agregar un nuevo usuario manualmente
+## 🚀 Roadmap
 
-**Opción 1: Desde el login** (recomendado)
-- Todavía no tenemos página de registro, pero puedes usar Postman o curl
-
-**Opción 2: Con curl**
-```bash
-curl -X POST http://localhost:3001/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "usuario": "brigadista1",
-    "contrasena": "1234",
-    "tipo_usuario": "brigadista"
-  }'
-```
-
-**Opción 3: Directamente en PostgreSQL**
-```bash
-sudo -u postgres psql -d ecodatos
-```
-```sql
--- Ver usuarios actuales
-SELECT id, usuario, tipo_usuario, activo FROM usuarios;
-
--- Agregar usuario manualmente (la contraseña debe estar encriptada, esto es solo para pruebas)
--- NO USAR EN PRODUCCIÓN
-```
+- [ ] Fix: Incluir `en_proceso` en estadísticas del backend
+- [ ] Agregar sistema de registro de árboles
+- [ ] Implementar módulo de reportes PDF
+- [ ] Agregar gráficas de estadísticas
+- [ ] Implementar sistema de notificaciones
+- [ ] Agregar exportación de datos a Excel/CSV
+- [ ] Implementar API REST documentation con Swagger
+- [ ] Agregar tests unitarios y de integración
+- [ ] Implementar CI/CD con GitHub Actions
+- [ ] Dockerizar la aplicación
 
 ---
 
-## Endpoints disponibles (hasta ahora)
+## 👥 Contribución
 
-### Auth Service (http://localhost:3001)
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Registrar nuevo usuario |
-| POST | `/api/auth/login` | Iniciar sesión |
-| GET | `/api/auth/verify` | Verificar token JWT |
-| GET | `/health` | Verificar que el servicio está corriendo |
-
-**Ejemplo de login con curl:**
-```bash
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "usuario": "admin",
-    "contrasena": "1234"
-  }'
-```
+1. Fork el proyecto
+2. Crear rama feature (`git checkout -b feature/AmazingFeature`)
+3. Commit cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abrir Pull Request
 
 ---
 
-## Estado actual del proyecto
+## 📄 Licencia
 
-### ✅ Completado
-- [x] Estructura de microservicios
-- [x] Auth Service funcionando
-- [x] Base de datos PostgreSQL configurada
-- [x] Login del frontend funcionando
-- [x] Autenticación con JWT
-- [x] Proyecto en GitHub
-
-### ⏳ En desarrollo
-- [ ] Dashboard principal
-- [ ] Gestión de conglomerados
-- [ ] Gestión de brigadas
-- [ ] Mapas interactivos
-- [ ] API Gateway
-- [ ] Resto de microservicios
-
-### 📅 Por hacer
-- [ ] Clasificación de especies
-- [ ] Observaciones de campo (MongoDB)
-- [ ] Reportes y estadísticas
-- [ ] Despliegue en servidor
-- [ ] Documentación técnica completa
+Este proyecto es software educativo desarrollado como proyecto integrador de quinto semestre en la Universidad de Investigación y Desarrollo para el Inventario Forestal Nacional de Colombia - 2025.
 
 ---
 
-## Comandos útiles
+## 👨‍💻 Equipo de Desarrollo
 
-### Ver logs del backend
-```bash
-cd backend/services/auth-service
-npm run dev
-# Verás todos los logs en la terminal
-```
+**Equipo:**
+- Duvan Leandro Pedraza Gonzalez
+- Stefany Dayana Medina Galvis
+- Juan Daniel Quinchanegua
+- Jonathan Arley Monsalve Salazar
+- Duvan Ramirez Molina
 
-### Reiniciar el frontend
-```bash
-# Ctrl+C para detener
-npm run dev
-```
-
-### Ver qué puertos están en uso
-```bash
-sudo lsof -i :3001  # Ver qué usa el puerto 3001
-sudo lsof -i :5173  # Ver qué usa el puerto 5173
-```
-
-### Limpiar caché de npm
-```bash
-npm cache clean --force
-rm -rf node_modules package-lock.json
-npm install
-```
+**Repositorio:** [@duvanleandro](https://github.com/duvanleandro)  
+**Proyecto:** Integrador Quinto Semestre - Ingeniería de Sistemas  
+**Universidad:** Universidad de Investigación y Desarrollo
 
 ---
 
-## Notas importantes
+## 📞 Soporte
 
-1. **NO SUBIR ARCHIVOS .env A GITHUB** - Ya está en el .gitignore
-2. Los archivos `.env` tienen las contraseñas de las bases de datos
-3. El usuario `admin` con contraseña `1234` es solo para desarrollo
-4. MongoDB se usa para observaciones de campo (todavía no implementado)
-5. Cada microservicio corre en un puerto diferente
+Para reportar bugs o solicitar features, crear un issue en:
+https://github.com/duvanleandro/ProyectoIntegrador/issues
 
 ---
 
-## Contacto y ayuda
+## 🙏 Agradecimientos
 
-Si tienes problemas, contacta a cualquier miembro del equipo o abre un issue en GitHub.
-
-**Repositorio:** https://github.com/duvanleandro/ProyectoIntegrador
+- Manual IFN Colombia v4
+- OpenStreetMap contributors
+- Leaflet community
+- React community
 
 ---
 
-## Licencia
-
-Este proyecto es académico para la Universidad de Investigacion y Desarrollo - 2025
+**Última actualización:** Octubre 30, 2025

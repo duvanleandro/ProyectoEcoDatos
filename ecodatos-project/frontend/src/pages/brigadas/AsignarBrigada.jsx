@@ -241,13 +241,13 @@ function AsignarBrigada() {
                       </td>
                       <td>
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          asig.estado_asignacion === 'Completado' 
+                          asig.estado_real === 'Completado' 
                             ? 'bg-green-100 text-green-800'
-                            : asig.estado_asignacion === 'En_Proceso'
+                            : asig.estado_real === 'En_Proceso'
                             ? 'bg-blue-100 text-blue-800'
                             : 'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {asig.estado_asignacion}
+                          {asig.estado_real}
                         </span>
                       </td>
                       <td className="text-sm text-gray-600">

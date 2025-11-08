@@ -12,6 +12,7 @@ router.get('/integrantes', brigadaController.listarIntegrantes);
 // Brigadas
 router.post('/', brigadaController.crear);
 router.get('/', brigadaController.listar);
+router.get('/usuario/:idUsuario', brigadaController.obtenerPorUsuario);
 router.get('/:id', brigadaController.obtenerPorId);
 router.delete('/:id', brigadaController.eliminarBrigada);
 

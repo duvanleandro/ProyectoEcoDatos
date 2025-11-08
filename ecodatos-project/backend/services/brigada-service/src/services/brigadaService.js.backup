@@ -191,7 +191,7 @@ class BrigadaService {
         SELECT 
           c.*,
           bc.fecha_asignacion,
-          c.estado as estado_real, bc.estado as estado_asignacion
+          bc.estado as estado_asignacion
         FROM conglomerado c
         INNER JOIN brigadaconglomerado bc ON c.id = bc.id_conglomerado
         WHERE bc.id_brigada = :id_brigada
@@ -371,38 +371,6 @@ class BrigadaService {
       throw new Error('Error al obtener estadísticas: ' + error.message);
     }
   }
-
-   async obtenerBrigadaPorUsuario(idUsuario) {
-    try {
-      const brigada = await sequelize.query(`
-        SELECT b.*, bi.id_integrante, i.nombre_apellidos, i.rol
-        FROM brigada b
-        INNER JOIN brigadaintegrante bi ON b.id = bi.id_brigada
-        INNER JOIN integrante i ON bi.id_integrante = i.id
-        INNER JOIN usuarios u ON i.id = u.id_integrante
-        WHERE u.id = :idUsuario
-        LIMIT 1
-      `, {
-        replacements: { idUsuario },
-        type: sequelize.QueryTypes.SELECT
-      });
-
-      if (brigada.length === 0) {
-        return null;
-      }
-
-      return {
-        id: brigada[0].id,
-        nombre: brigada[0].nombre,
-        zona_designada: brigada[0].zona_designada,
-        activo: brigada[0].activo
-      };
-    } catch (error) {
-      throw new Error('Error al obtener brigada del usuario: ' + error.message);
-    }
-  }
 }
-
-
 
 module.exports = new BrigadaService();

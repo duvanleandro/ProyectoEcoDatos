@@ -32,6 +32,14 @@ const Conglomerado = sequelize.define('Conglomerado', {
     type: DataTypes.STRING(100),
     allowNull: true
   },
+  brigada_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  brigada_nombre: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
   estado: {
     type: DataTypes.STRING(20),
     defaultValue: 'Pendiente',
@@ -44,6 +52,10 @@ const Conglomerado = sequelize.define('Conglomerado', {
     defaultValue: DataTypes.NOW
   },
   fecha_aprobacion: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  fecha_asignacion: {
     type: DataTypes.DATE,
     allowNull: true
   }

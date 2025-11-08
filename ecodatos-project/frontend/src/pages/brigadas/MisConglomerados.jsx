@@ -17,15 +17,15 @@ function MisConglomerados() {
   const cargarMisConglomerados = async () => {
     try {
       setLoading(true);
-      // Por ahora traemos todos los conglomerados asignados
-      // TODO: Filtrar por brigada del usuario cuando tengamos la relación usuario-brigada
       const response = await axios.get('http://localhost:3002/api/conglomerados');
       
       if (response.data.success) {
-        // Filtrar solo los que tienen brigada asignada
+        // Filtrar TODOS los conglomerados que tienen brigada asignada
         const conglomeradosAsignados = response.data.data.filter(c => 
           c.brigada_nombre && ['Asignado', 'En_Proceso', 'Completado'].includes(c.estado)
         );
+        
+        console.log('Conglomerados asignados:', conglomeradosAsignados);
         setConglomerados(conglomeradosAsignados);
       }
     } catch (error) {
@@ -46,10 +46,12 @@ function MisConglomerados() {
 
       if (response.data.success) {
         setMensaje('✅ Trabajo iniciado exitosamente');
+        setTimeout(() => setMensaje(''), 5000);
         cargarMisConglomerados();
       }
     } catch (error) {
       setMensaje('❌ ' + (error.response?.data?.message || error.message));
+      setTimeout(() => setMensaje(''), 8000);
     }
   };
 
@@ -64,10 +66,12 @@ function MisConglomerados() {
 
       if (response.data.success) {
         setMensaje('✅ Conglomerado marcado como completado');
+        setTimeout(() => setMensaje(''), 3000);
         cargarMisConglomerados();
       }
     } catch (error) {
       setMensaje('❌ ' + (error.response?.data?.message || error.message));
+      setTimeout(() => setMensaje(''), 5000);
     }
   };
 
@@ -236,6 +240,7 @@ function MisConglomerados() {
                                   title="Iniciar trabajo"
                                 >
                                   <Play size={16} />
+                                  Iniciar
                                 </button>
                               )}
 
@@ -246,6 +251,7 @@ function MisConglomerados() {
                                   title="Completar trabajo"
                                 >
                                   <CheckCircle size={16} />
+                                  Completar
                                 </button>
                               )}
                             </>

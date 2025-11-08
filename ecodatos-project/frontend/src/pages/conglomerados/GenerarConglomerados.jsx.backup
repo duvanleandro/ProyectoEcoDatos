@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import Layout from '../../components/common/Layout';
-import { Leaf, CheckCircle, XCircle, Trash2, Eye, EyeOff } from 'lucide-react';
+import { MapPin, Loader, CheckCircle, XCircle, Trash2, Filter, Square, CheckSquare } from 'lucide-react';
 import axios from 'axios';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
 // Fix para los iconos de Leaflet en React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -42,24 +42,6 @@ const iconAsignado = new L.Icon({
   shadowSize: [41, 41]
 });
 
-const iconEnProceso = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-const iconCompletado = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
 const iconRechazado = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -72,33 +54,68 @@ const iconRechazado = new L.Icon({
 // Componente para volar a una posición
 function FlyToLocation({ position }) {
   const map = useMap();
-  
   useEffect(() => {
     if (position) {
       map.flyTo(position, 13, { duration: 1.5 });
     }
   }, [position, map]);
-  
   return null;
 }
 
 function GenerarConglomerados() {
-  const [cantidad, setCantidad] = useState(50);
   const [conglomerados, setConglomerados] = useState([]);
+  const [conglomeradosFiltrados, setConglomeradosFiltrados] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [mensaje, setMensaje] = useState('');
   const [estadisticas, setEstadisticas] = useState(null);
+  const [mensaje, setMensaje] = useState('');
+  const [cantidad, setCantidad] = useState(50);
   const [filtroEstado, setFiltroEstado] = useState('Todos');
-  const [modoSeleccion, setModoSeleccion] = useState(false);
-  const [seleccionados, setSeleccionados] = useState([]);
+  const [flyToPosition, setFlyToPosition] = useState(null);
   const [mostrarLista, setMostrarLista] = useState(true);
-  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState(null);
+  const [seleccionados, setSeleccionados] = useState([]);
+  const [modoSeleccion, setModoSeleccion] = useState(false);
 
   useEffect(() => {
     cargarConglomerados();
     cargarEstadisticas();
   }, []);
 
+  useEffect(() => {
+    // Filtrar conglomerados según el estado seleccionado
+    if (filtroEstado === 'Todos') {
+      setConglomeradosFiltrados(conglomerados);
+    } else {
+      setConglomeradosFiltrados(
+        conglomerados.filter(c => c.estado === filtroEstado)
+      );
+    }
+    // Limpiar selección al cambiar filtro
+    setSeleccionados([]);
+  }, [filtroEstado, conglomerados]);
+
+  // Generar conglomerados
+  const handleGenerar = async () => {
+    setLoading(true);
+    setMensaje('');
+    
+    try {
+      const response = await axios.post('http://localhost:3002/api/conglomerados/generar', {
+        cantidad: cantidad
+      });
+
+      if (response.data.success) {
+        setMensaje(`✅ ${response.data.message}`);
+        cargarConglomerados();
+        cargarEstadisticas();
+      }
+    } catch (error) {
+      setMensaje('❌ Error al generar conglomerados: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cargar conglomerados
   const cargarConglomerados = async () => {
     try {
       const response = await axios.get('http://localhost:3002/api/conglomerados');
@@ -110,6 +127,7 @@ function GenerarConglomerados() {
     }
   };
 
+  // Cargar estadísticas
   const cargarEstadisticas = async () => {
     try {
       const response = await axios.get('http://localhost:3002/api/conglomerados/estadisticas');
@@ -121,104 +139,70 @@ function GenerarConglomerados() {
     }
   };
 
-  const handleGenerar = async () => {
-    if (!cantidad || cantidad < 1 || cantidad > 100) {
-      setMensaje('❌ La cantidad debe estar entre 1 y 100');
-      return;
-    }
-
-    setLoading(true);
-    setMensaje('');
-
-    try {
-      const response = await axios.post('http://localhost:3002/api/conglomerados/generar', {
-        cantidad: parseInt(cantidad)
-      });
-
-      if (response.data.success) {
-        setMensaje(`✅ ${response.data.message}`);
-        cargarConglomerados();
-        cargarEstadisticas();
-      }
-    } catch (error) {
-      setMensaje('❌ ' + (error.response?.data?.message || error.message));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRecargar = () => {
-    cargarConglomerados();
-    cargarEstadisticas();
-    setMensaje('✅ Datos recargados');
-    setTimeout(() => setMensaje(''), 2000);
-  };
-
+  // Aprobar conglomerado individual
   const handleAprobar = async (id) => {
     try {
       const response = await axios.put(`http://localhost:3002/api/conglomerados/${id}/aprobar`);
       if (response.data.success) {
-        setMensaje('✅ Conglomerado aprobado y subparcelas creadas');
+        setMensaje(`✅ Conglomerado ${id} aprobado y subparcelas creadas`);
         cargarConglomerados();
         cargarEstadisticas();
-        setTimeout(() => setMensaje(''), 3000);
       }
     } catch (error) {
-      setMensaje('❌ ' + (error.response?.data?.message || error.message));
+      setMensaje('❌ Error al aprobar: ' + error.message);
     }
   };
 
+  // Rechazar conglomerado individual
   const handleRechazar = async (id) => {
     try {
       const response = await axios.put(`http://localhost:3002/api/conglomerados/${id}/rechazar`);
       if (response.data.success) {
-        setMensaje('✅ Conglomerado rechazado');
+        setMensaje(`✅ Conglomerado ${id} rechazado`);
         cargarConglomerados();
         cargarEstadisticas();
-        setTimeout(() => setMensaje(''), 3000);
       }
     } catch (error) {
-      setMensaje('❌ ' + (error.response?.data?.message || error.message));
+      setMensaje('❌ Error al rechazar: ' + error.message);
     }
   };
 
+  // Eliminar conglomerado individual
   const handleEliminar = async (id) => {
-    if (!window.confirm('¿Eliminar este conglomerado? Esta acción no se puede deshacer.')) {
+    if (!window.confirm('¿Estás seguro de eliminar este conglomerado?')) {
       return;
     }
 
     try {
-      const response = await axios.delete(`http://localhost:3002/api/conglomerados/${id}`);
-      if (response.data.success) {
-        setMensaje('✅ Conglomerado eliminado');
-        cargarConglomerados();
-        cargarEstadisticas();
-        setTimeout(() => setMensaje(''), 3000);
-      }
+      await axios.delete(`http://localhost:3002/api/conglomerados/${id}`);
+      setMensaje(`✅ Conglomerado ${id} eliminado`);
+      cargarConglomerados();
+      cargarEstadisticas();
     } catch (error) {
-      setMensaje('❌ ' + (error.response?.data?.message || error.message));
+      setMensaje('❌ Error al eliminar: ' + error.message);
     }
   };
 
+  // ACCIONES EN LOTE
   const handleAprobarSeleccionados = async () => {
-    if (!window.confirm(`¿Aprobar ${seleccionados.length} conglomerados seleccionados?`)) {
-      return;
-    }
+    if (seleccionados.length === 0) return;
+    
+    if (!window.confirm(`¿Aprobar ${seleccionados.length} conglomerados?`)) return;
 
     setLoading(true);
-    let aprobados = 0;
-    let errores = 0;
+    let exitosos = 0;
+    let fallidos = 0;
 
     for (const id of seleccionados) {
       try {
         await axios.put(`http://localhost:3002/api/conglomerados/${id}/aprobar`);
-        aprobados++;
+        exitosos++;
       } catch (error) {
-        errores++;
+        fallidos++;
       }
     }
 
-    setMensaje(`✅ ${aprobados} aprobados. ${errores} errores.`);
+    setMensaje(`✅ ${exitosos} aprobados, ${fallidos} fallidos`);
     setSeleccionados([]);
     setModoSeleccion(false);
     cargarConglomerados();
@@ -227,24 +211,24 @@ function GenerarConglomerados() {
   };
 
   const handleRechazarSeleccionados = async () => {
-    if (!window.confirm(`¿Rechazar ${seleccionados.length} conglomerados seleccionados?`)) {
-      return;
-    }
+    if (seleccionados.length === 0) return;
+    
+    if (!window.confirm(`¿Rechazar ${seleccionados.length} conglomerados?`)) return;
 
     setLoading(true);
-    let rechazados = 0;
-    let errores = 0;
+    let exitosos = 0;
+    let fallidos = 0;
 
     for (const id of seleccionados) {
       try {
         await axios.put(`http://localhost:3002/api/conglomerados/${id}/rechazar`);
-        rechazados++;
+        exitosos++;
       } catch (error) {
-        errores++;
+        fallidos++;
       }
     }
 
-    setMensaje(`✅ ${rechazados} rechazados. ${errores} errores.`);
+    setMensaje(`✅ ${exitosos} rechazados, ${fallidos} fallidos`);
     setSeleccionados([]);
     setModoSeleccion(false);
     cargarConglomerados();
@@ -253,24 +237,24 @@ function GenerarConglomerados() {
   };
 
   const handleEliminarSeleccionados = async () => {
-    if (!window.confirm(`¿ELIMINAR ${seleccionados.length} conglomerados? Esta acción no se puede deshacer.`)) {
-      return;
-    }
+    if (seleccionados.length === 0) return;
+    
+    if (!window.confirm(`¿Eliminar ${seleccionados.length} conglomerados permanentemente?`)) return;
 
     setLoading(true);
-    let eliminados = 0;
-    let errores = 0;
+    let exitosos = 0;
+    let fallidos = 0;
 
     for (const id of seleccionados) {
       try {
         await axios.delete(`http://localhost:3002/api/conglomerados/${id}`);
-        eliminados++;
+        exitosos++;
       } catch (error) {
-        errores++;
+        fallidos++;
       }
     }
 
-    setMensaje(`✅ ${eliminados} eliminados. ${errores} errores.`);
+    setMensaje(`✅ ${exitosos} eliminados, ${fallidos} fallidos`);
     setSeleccionados([]);
     setModoSeleccion(false);
     cargarConglomerados();
@@ -278,6 +262,7 @@ function GenerarConglomerados() {
     setLoading(false);
   };
 
+  // Selección
   const toggleSeleccion = (id) => {
     if (seleccionados.includes(id)) {
       setSeleccionados(seleccionados.filter(s => s !== id));
@@ -295,14 +280,9 @@ function GenerarConglomerados() {
   };
 
   // Ir a ubicación en el mapa
-  const irAUbicacion = (lat, lon) => {
-    setUbicacionSeleccionada([parseFloat(lat), parseFloat(lon)]);
+  const irAUbicacion = (cong) => {
+    setFlyToPosition([parseFloat(cong.latitud), parseFloat(cong.longitud)]);
   };
-
-  // Filtrar conglomerados
-  const conglomeradosFiltrados = filtroEstado === 'Todos'
-    ? conglomerados
-    : conglomerados.filter(c => c.estado === filtroEstado);
 
   // Obtener icono según estado
   const getIcon = (estado) => {
@@ -311,10 +291,6 @@ function GenerarConglomerados() {
         return iconAprobado;
       case 'Asignado':
         return iconAsignado;
-      case 'En_Proceso':
-        return iconEnProceso;
-      case 'Completado':
-        return iconCompletado;
       case 'Rechazado':
         return iconRechazado;
       default:
@@ -327,17 +303,23 @@ function GenerarConglomerados() {
       <div className="max-w-full mx-auto flex gap-4">
         {/* Panel Lateral - Lista de Conglomerados */}
         <div className={`${mostrarLista ? 'w-80' : 'w-0'} transition-all duration-300 overflow-hidden`}>
-          <div className="bg-white rounded-lg shadow h-[calc(100vh)] flex flex-col">
+          <div className="bg-white rounded-lg shadow h-full flex flex-col">
             {/* Header del panel */}
-            <div className="p-4 border-b flex-shrink-0">
+            <div className="p-4 border-b">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-gray-800">Conglomerados</h2>
+                <h2 className="font-bold text-lg">Conglomerados</h2>
                 <button
-                  onClick={() => setMostrarLista(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                  title="Ocultar panel"
+                  onClick={() => {
+                    setModoSeleccion(!modoSeleccion);
+                    setSeleccionados([]);
+                  }}
+                  className={`px-3 py-1 rounded text-sm ${
+                    modoSeleccion 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-200 text-gray-700'
+                  }`}
                 >
-                  <EyeOff size={20} />
+                  {modoSeleccion ? 'Cancelar' : 'Seleccionar'}
                 </button>
               </div>
               
@@ -353,8 +335,6 @@ function GenerarConglomerados() {
                   <option value="Pendiente">Pendientes ({estadisticas?.pendientes || 0})</option>
                   <option value="Aprobado">Aprobados ({estadisticas?.aprobados || 0})</option>
                   <option value="Asignado">Asignados ({estadisticas?.asignados || 0})</option>
-                  <option value="En_Proceso">En Proceso ({conglomerados.filter(c => c.estado === 'En_Proceso').length})</option>
-                  <option value="Completado">Completados ({estadisticas?.completados || 0})</option>
                   <option value="Rechazado">Rechazados ({estadisticas?.rechazados || 0})</option>
                 </select>
               </div>
@@ -365,7 +345,7 @@ function GenerarConglomerados() {
                   <p className="text-sm font-semibold mb-2">
                     {seleccionados.length} seleccionados
                   </p>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex flex-col gap-2">
                     <button
                       onClick={handleAprobarSeleccionados}
                       disabled={loading}
@@ -394,167 +374,162 @@ function GenerarConglomerados() {
                 </div>
               )}
 
-              {/* Toggle modo selección */}
-              <div className="flex gap-2 mt-3">
+              {/* Seleccionar todos */}
+              {modoSeleccion && conglomeradosFiltrados.length > 0 && (
                 <button
-                  onClick={() => {
-                    setModoSeleccion(!modoSeleccion);
-                    if (modoSeleccion) setSeleccionados([]);
-                  }}
-                  className={`px-3 py-1 rounded text-sm ${
-                    modoSeleccion ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
-                  }`}
+                  onClick={seleccionarTodos}
+                  className="mt-2 w-full bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded text-sm flex items-center justify-center gap-2"
                 >
-                  {modoSeleccion ? 'Salir de selección' : 'Modo selección'}
+                  {seleccionados.length === conglomeradosFiltrados.length ? (
+                    <>
+                      <CheckSquare size={16} />
+                      Deseleccionar todos
+                    </>
+                  ) : (
+                    <>
+                      <Square size={16} />
+                      Seleccionar todos
+                    </>
+                  )}
                 </button>
-                {modoSeleccion && (
-                  <button
-                    onClick={seleccionarTodos}
-                    className="px-3 py-1 rounded text-sm bg-gray-200 text-gray-700"
-                  >
-                    {seleccionados.length === conglomeradosFiltrados.length ? 'Deseleccionar' : 'Seleccionar'} todos
-                  </button>
-                )}
-              </div>
+              )}
             </div>
 
-            {/* Lista scrolleable de conglomerados */}
-            <div className="flex-1 overflow-y-auto px-3 py-2">
-              {conglomeradosFiltrados.map((cong) => (
-                <div
-                  key={cong.id}
-                  className={`border rounded-lg p-3 mb-2 cursor-pointer hover:shadow-md transition ${
-                    modoSeleccion && seleccionados.includes(cong.id) ? 'bg-blue-50 border-blue-300' : ''
-                  }`}
-                  onClick={() => {
-                    if (modoSeleccion) {
-                      toggleSeleccion(cong.id);
-                    } else {
-                      irAUbicacion(cong.latitud, cong.longitud);
-                    }
-                  }}
-                >
-                  {modoSeleccion && (
-                    <input
-                      type="checkbox"
-                      checked={seleccionados.includes(cong.id)}
-                      onChange={() => toggleSeleccion(cong.id)}
-                      className="mb-2"
-                    />
-                  )}
-                  
-                  <div>
-                    <h3 className="font-semibold text-sm">{cong.nombre}</h3>
-                    <p className="text-xs text-gray-600">ID: {cong.id}</p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {cong.latitud}, {cong.longitud}
-                    </p>
-                    <span className={`inline-block px-2 py-1 rounded text-xs mt-2 ${
-                      cong.estado === 'Completado' ? 'bg-purple-100 text-purple-800' :
-                      cong.estado === 'En_Proceso' ? 'bg-orange-100 text-orange-800' :
-                      cong.estado === 'Aprobado' ? 'bg-green-100 text-green-800' :
-                      cong.estado === 'Asignado' ? 'bg-blue-100 text-blue-800' :
-                      cong.estado === 'Rechazado' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {cong.estado === 'En_Proceso' ? 'En Proceso' : cong.estado}
-                    </span>
-                  </div>
+            {/* Lista scrolleable */}
+            <div className="flex-1 overflow-y-auto p-2">
+              {conglomeradosFiltrados.length === 0 ? (
+                <p className="text-center text-gray-500 text-sm py-4">
+                  No hay conglomerados {filtroEstado !== 'Todos' && filtroEstado.toLowerCase()}
+                </p>
+              ) : (
+                conglomeradosFiltrados.map((cong) => (
+                  <div
+                    key={cong.id}
+                    className={`mb-2 p-3 border rounded-lg hover:bg-gray-50 transition ${
+                      seleccionados.includes(cong.id) ? 'bg-blue-50 border-blue-300' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      {/* Checkbox */}
+                      {modoSeleccion && (
+                        <input
+                          type="checkbox"
+                          checked={seleccionados.includes(cong.id)}
+                          onChange={() => toggleSeleccion(cong.id)}
+                          className="mt-1"
+                        />
+                      )}
 
-                  {/* Eliminar individual */}
-                  {!modoSeleccion && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEliminar(cong.id);
-                      }}
-                      className="mt-2 text-red-500 hover:text-red-700 text-xs flex items-center gap-1"
-                    >
-                      <Trash2 size={12} />
-                      Eliminar
-                    </button>
-                  )}
-                </div>
-              ))}
+                      {/* Info */}
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => !modoSeleccion && irAUbicacion(cong)}
+                      >
+                        <h3 className="font-semibold text-sm">{cong.nombre}</h3>
+                        <p className="text-xs text-gray-600">ID: {cong.id}</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {cong.latitud}, {cong.longitud}
+                        </p>
+                        <span className={`inline-block px-2 py-1 rounded text-xs mt-2 ${
+                          cong.estado === 'Aprobado' ? 'bg-green-100 text-green-800' :
+                          cong.estado === 'Asignado' ? 'bg-blue-100 text-blue-800' :
+                          cong.estado === 'Rechazado' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {cong.estado}
+                        </span>
+                      </div>
+
+                      {/* Eliminar individual */}
+                      {!modoSeleccion && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEliminar(cong.id);
+                          }}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
 
-        {/* Botón para mostrar panel si está oculto */}
-        {!mostrarLista && (
-          <button
-            onClick={() => setMostrarLista(true)}
-            className="fixed left-4 top-24 bg-primary text-white p-2 rounded-lg shadow-lg hover:bg-primary-dark transition z-50"
-            title="Mostrar panel"
-          >
-            <Eye size={20} />
-          </button>
-        )}
-
-        {/* Área Principal - Mapa y Controles */}
+        {/* Panel Principal - Mapa y Controles */}
         <div className="flex-1">
           {/* Header */}
           <div className="mb-4">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Generar Conglomerados</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Generar Conglomerados
+            </h1>
             <p className="text-gray-600">
               Genera conglomerados aleatorios en Colombia y gestiona su aprobación
             </p>
           </div>
 
-          {/* Mensaje */}
-          {mensaje && (
-            <div className={`mb-4 p-3 rounded-lg text-sm ${
-              mensaje.includes('✅') 
-                ? 'bg-green-50 border border-green-200 text-green-700'
-                : 'bg-red-50 border border-red-200 text-red-700'
-            }`}>
-              {mensaje}
-            </div>
-          )}
-
-          {/* Controles de Generación */}
+          {/* Controles */}
           <div className="bg-white p-4 rounded-lg shadow mb-4">
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cantidad de conglomerados a generar
-                </label>
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
                 <input
                   type="number"
                   min="1"
                   max="100"
                   value={cantidad}
-                  onChange={(e) => setCantidad(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                  placeholder="Ej: 50"
+                  onChange={(e) => setCantidad(parseInt(e.target.value))}
+                  className="w-20 px-3 py-2 border rounded-lg"
                 />
+                <button
+                  onClick={handleGenerar}
+                  disabled={loading}
+                  className="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg flex items-center gap-2 transition disabled:opacity-50"
+                >
+                  {loading ? (
+                    <>
+                      <Loader className="animate-spin" size={18} />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin size={18} />
+                      Generar
+                    </>
+                  )}
+                </button>
               </div>
+
               <button
-                onClick={handleGenerar}
-                disabled={loading}
-                className="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg transition flex items-center gap-2 disabled:opacity-50"
-              >
-                <Leaf size={20} />
-                {loading ? 'Generando...' : 'Generar'}
-              </button>
-              <button
-                onClick={handleRecargar}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+                onClick={cargarConglomerados}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
               >
                 Recargar
               </button>
+
+              <button
+                onClick={() => setMostrarLista(!mostrarLista)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+              >
+                <Filter size={18} />
+                {mostrarLista ? 'Ocultar' : 'Mostrar'} Lista
+              </button>
             </div>
 
-            {conglomerados.length > 0 && (
+            {/* Mensaje */}
+            {mensaje && (
               <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
-                ℹ️ Haz clic en un conglomerado de la lista para verlo en el mapa
+                {mensaje}
               </div>
             )}
           </div>
 
           {/* Estadísticas */}
           {estadisticas && (
-            <div className="grid grid-cols-2 md:grid-cols-7 gap-3 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
               <div className="bg-white p-3 rounded-lg shadow">
                 <p className="text-xs text-gray-600">Total</p>
                 <p className="text-xl font-bold text-gray-800">{estadisticas.total}</p>
@@ -571,17 +546,13 @@ function GenerarConglomerados() {
                 <p className="text-xs text-gray-600">Asignados</p>
                 <p className="text-xl font-bold text-blue-600">{estadisticas.asignados}</p>
               </div>
-              <div className="bg-orange-50 p-3 rounded-lg shadow">
-                <p className="text-xs text-gray-600">En Proceso</p>
-                <p className="text-xl font-bold text-orange-600">{estadisticas.en_proceso || 0}</p>
-              </div>
-              <div className="bg-purple-50 p-3 rounded-lg shadow">
-                <p className="text-xs text-gray-600">Completados</p>
-                <p className="text-xl font-bold text-purple-600">{estadisticas.completados || 0}</p>
-              </div>
               <div className="bg-red-50 p-3 rounded-lg shadow">
                 <p className="text-xs text-gray-600">Rechazados</p>
                 <p className="text-xl font-bold text-red-600">{estadisticas.rechazados}</p>
+              </div>
+              <div className="bg-purple-50 p-3 rounded-lg shadow">
+                <p className="text-xs text-gray-600">Completados</p>
+                <p className="text-xl font-bold text-purple-600">{estadisticas.completados}</p>
               </div>
             </div>
           )}
@@ -590,7 +561,7 @@ function GenerarConglomerados() {
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <MapContainer
               center={[4.5709, -74.2973]}
-              zoom={6}
+              zoom={5}
               style={{ height: '600px', width: '100%' }}
             >
               <TileLayer
@@ -598,17 +569,17 @@ function GenerarConglomerados() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               
-              {ubicacionSeleccionada && <FlyToLocation position={ubicacionSeleccionada} />}
+              <FlyToLocation position={flyToPosition} />
               
-              {conglomerados.map((cong) => (
-                <Marker 
-                  key={cong.id} 
+              {conglomeradosFiltrados.map((cong) => (
+                <Marker
+                  key={cong.id}
                   position={[parseFloat(cong.latitud), parseFloat(cong.longitud)]}
                   icon={getIcon(cong.estado)}
                 >
                   <Popup>
                     <div className="p-2">
-                      <h3 className="font-bold mb-2">{cong.nombre}</h3>
+                      <h3 className="font-bold text-primary mb-2">{cong.nombre}</h3>
                       <p className="text-sm mb-1">
                         <strong>ID:</strong> {cong.id}
                       </p>
@@ -618,13 +589,11 @@ function GenerarConglomerados() {
                       </p>
                       <p className="text-sm mb-1">
                         <strong>Estado:</strong> <span className={`font-semibold ${
-                          cong.estado === 'Completado' ? 'text-purple-600' :
-                          cong.estado === 'En_Proceso' ? 'text-orange-600' :
                           cong.estado === 'Aprobado' ? 'text-green-600' :
                           cong.estado === 'Asignado' ? 'text-blue-600' :
                           cong.estado === 'Rechazado' ? 'text-red-600' :
                           'text-yellow-600'
-                        }`}>{cong.estado === 'En_Proceso' ? 'En Proceso' : cong.estado}</span>
+                        }`}>{cong.estado}</span>
                       </p>
                       
                       {cong.estado === 'Pendiente' && (
@@ -638,7 +607,7 @@ function GenerarConglomerados() {
                           </button>
                           <button
                             onClick={() => handleRechazar(cong.id)}
-                            className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
                           >
                             <XCircle size={14} />
                             Rechazar
@@ -648,7 +617,7 @@ function GenerarConglomerados() {
                       
                       <button
                         onClick={() => handleEliminar(cong.id)}
-                        className="mt-2 text-red-500 hover:text-red-700 text-sm flex items-center gap-1"
+                        className="w-full mt-2 bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm flex items-center justify-center gap-1"
                       >
                         <Trash2 size={14} />
                         Eliminar
@@ -675,14 +644,6 @@ function GenerarConglomerados() {
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
                 <span>Asignado</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
-                <span>En Proceso</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
-                <span>Completado</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-red-500 rounded-full"></div>

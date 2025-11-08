@@ -9,6 +9,9 @@ import GestionBrigadas from './pages/brigadas/GestionBrigadas';
 import GestionUsuarios from './pages/admin/GestionUsuarios';
 import GestionEspecies from './pages/especies/GestionEspecies';
 import ConsultaEspecies from './pages/especies/ConsultaEspecies';
+import RegistrarObservacion from './pages/observaciones/RegistrarObservacion';
+import ListaObservaciones from './pages/observaciones/ListaObservaciones';
+import DetalleObservacion from './pages/observaciones/DetalleObservacion';
 
 // Componente para proteger rutas (requiere autenticación)
 function ProtectedRoute({ children }) {
@@ -110,6 +113,34 @@ function App() {
           element={
             <ProtectedRoute>
               <ConsultaEspecies />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Observaciones */}
+        <Route 
+          path="/observaciones/registrar" 
+          element={
+            <ProtectedRoute>
+              <RegistrarObservacion />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/observaciones/lista" 
+          element={
+            <ProtectedRoute>
+              <ListaObservaciones />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/observaciones/detalle/:id" 
+          element={
+            <ProtectedRoute>
+              <DetalleObservacion />
             </ProtectedRoute>
           } 
         />
