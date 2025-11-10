@@ -7,9 +7,6 @@ Sistema web integral para la gestión del Inventario Forestal Nacional de Colomb
 **Integrantes:**
 - Duvan Leandro Pedraza Gonzalez
 - Stefany Dayana Medina Galvis
-- Juan Daniel Quinchanegua
-- Jonathan Arley Monsalve Salazar
-- Duvan Ramirez Molina
 
 **Grupo:** 5A
 **Institución:** Universidad de Investigación y Desarrollo
