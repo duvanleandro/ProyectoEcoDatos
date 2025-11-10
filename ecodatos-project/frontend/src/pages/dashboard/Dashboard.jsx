@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/Layout';
-import { 
-  MapPin, 
-  Users, 
-  Eye, 
+import ConglomeradoActivoCard from '../../components/dashboard/ConglomeradoActivoCard';
+import {
+  MapPin,
+  Users,
+  Eye,
   Leaf,
   UserCog,
   UsersRound,
@@ -186,7 +187,7 @@ function Dashboard() {
                 Menú Principal
               </h1>
               <p className="text-gray-600 mt-1">
-                Bienvenido, {usuario.usuario}. Selecciona una opción para continuar.
+Bienvenido, {usuario.nombre_apellidos || usuario.usuario}. Selecciona una opción para continuar.
               </p>
             </div>
           </div>
@@ -209,6 +210,13 @@ function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Conglomerado Activo - Para Brigadistas */}
+        {['jefe_brigada', 'botanico', 'tecnico_auxiliar', 'coinvestigador'].includes(usuario.tipo_usuario) && (
+          <div className="mb-6">
+            <ConglomeradoActivoCard usuario={usuario} />
+          </div>
+        )}
 
         {/* Menú especial para Admin - Solo Administración */}
         {usuario.tipo_usuario === 'admin' && (

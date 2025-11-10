@@ -4,7 +4,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Layout from '../../components/common/Layout';
 import { Leaf, CheckCircle, XCircle, Trash2, Eye, EyeOff } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 // Fix para los iconos de Leaflet en React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -101,7 +102,7 @@ function GenerarConglomerados() {
 
   const cargarConglomerados = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/api/conglomerados');
+      const response = await axios.get(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}`);
       if (response.data.success) {
         setConglomerados(response.data.data);
       }
@@ -112,7 +113,7 @@ function GenerarConglomerados() {
 
   const cargarEstadisticas = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/api/conglomerados/estadisticas');
+      const response = await axios.get(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.ESTADISTICAS}`);
       if (response.data.success) {
         setEstadisticas(response.data.data);
       }
@@ -131,7 +132,7 @@ function GenerarConglomerados() {
     setMensaje('');
 
     try {
-      const response = await axios.post('http://localhost:3002/api/conglomerados/generar', {
+      const response = await axios.post(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.GENERAR}`, {
         cantidad: parseInt(cantidad)
       });
 
@@ -156,7 +157,7 @@ function GenerarConglomerados() {
 
   const handleAprobar = async (id) => {
     try {
-      const response = await axios.put(`http://localhost:3002/api/conglomerados/${id}/aprobar`);
+      const response = await axios.put(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}/${id}/aprobar`);
       if (response.data.success) {
         setMensaje('✅ Conglomerado aprobado y subparcelas creadas');
         cargarConglomerados();
@@ -170,7 +171,7 @@ function GenerarConglomerados() {
 
   const handleRechazar = async (id) => {
     try {
-      const response = await axios.put(`http://localhost:3002/api/conglomerados/${id}/rechazar`);
+      const response = await axios.put(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}/${id}/rechazar`);
       if (response.data.success) {
         setMensaje('✅ Conglomerado rechazado');
         cargarConglomerados();
@@ -188,7 +189,7 @@ function GenerarConglomerados() {
     }
 
     try {
-      const response = await axios.delete(`http://localhost:3002/api/conglomerados/${id}`);
+      const response = await axios.delete(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}/${id}`);
       if (response.data.success) {
         setMensaje('✅ Conglomerado eliminado');
         cargarConglomerados();
@@ -211,7 +212,7 @@ function GenerarConglomerados() {
 
     for (const id of seleccionados) {
       try {
-        await axios.put(`http://localhost:3002/api/conglomerados/${id}/aprobar`);
+        await axios.put(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}/${id}/aprobar`);
         aprobados++;
       } catch (error) {
         errores++;
@@ -237,7 +238,7 @@ function GenerarConglomerados() {
 
     for (const id of seleccionados) {
       try {
-        await axios.put(`http://localhost:3002/api/conglomerados/${id}/rechazar`);
+        await axios.put(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}/${id}/rechazar`);
         rechazados++;
       } catch (error) {
         errores++;
@@ -263,7 +264,7 @@ function GenerarConglomerados() {
 
     for (const id of seleccionados) {
       try {
-        await axios.delete(`http://localhost:3002/api/conglomerados/${id}`);
+        await axios.delete(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}/${id}`);
         eliminados++;
       } catch (error) {
         errores++;
@@ -599,10 +600,10 @@ function GenerarConglomerados() {
               />
               
               {ubicacionSeleccionada && <FlyToLocation position={ubicacionSeleccionada} />}
-              
-              {conglomerados.map((cong) => (
-                <Marker 
-                  key={cong.id} 
+
+              {conglomeradosFiltrados.map((cong) => (
+                <Marker
+                  key={cong.id}
                   position={[parseFloat(cong.latitud), parseFloat(cong.longitud)]}
                   icon={getIcon(cong.estado)}
                 >

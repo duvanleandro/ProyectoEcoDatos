@@ -1,31 +1,55 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/Layout';
-import { FileText, Plus, Eye, CheckCircle, Filter, Search } from 'lucide-react';
+import { FileText, Plus, Eye, CheckCircle, Filter, Search, Camera } from 'lucide-react';
 import axios from 'axios';
 
 function ListaObservaciones() {
   const navigate = useNavigate();
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
   const [observaciones, setObservaciones] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [estadisticas, setEstadisticas] = useState({ total: 0, validadas: 0, pendientes: 0 });
+  const [estadisticas, setEstadisticas] = useState({ total: 0, sin_enviar: 0, pendientes: 0, validadas: 0 });
   const [filtros, setFiltros] = useState({
     busqueda: '',
-    validado: ''
+    estado: ''
   });
+
+  const esAdmin = ['admin', 'coordinador'].includes(usuario.tipo_usuario);
+  const esBrigadista = ['jefe_brigada', 'botanico', 'tecnico_auxiliar', 'coinvestigador'].includes(usuario.tipo_usuario);
 
   useEffect(() => {
     cargarObservaciones();
-    cargarEstadisticas();
   }, []);
 
   const cargarObservaciones = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:3005/api/observaciones');
-      if (response.data.success) {
-        setObservaciones(response.data.data);
+      let observacionesFiltradas = [];
+
+      if (esBrigadista) {
+        // Brigadistas: Solo sus observaciones (de su brigada)
+        const responseBrigada = await axios.get(`http://localhost:3003/api/brigadas/usuario/${usuario.id}`);
+        
+        if (responseBrigada.data.success && responseBrigada.data.data) {
+          const idBrigada = responseBrigada.data.data.id;
+          const response = await axios.get(`http://localhost:3005/api/observaciones/brigada/${idBrigada}`);
+          
+          if (response.data.success) {
+            observacionesFiltradas = response.data.data;
+          }
+        }
+      } else if (esAdmin) {
+        // Admin: Solo observaciones enviadas por jefe (validado_por_jefe = true)
+        const response = await axios.get('http://localhost:3005/api/observaciones');
+        
+        if (response.data.success) {
+          observacionesFiltradas = response.data.data.filter(obs => obs.validado_por_jefe === true);
+        }
       }
+
+      setObservaciones(observacionesFiltradas);
+      calcularEstadisticas(observacionesFiltradas);
     } catch (error) {
       console.error('Error al cargar observaciones:', error);
     } finally {
@@ -33,33 +57,50 @@ function ListaObservaciones() {
     }
   };
 
-  const cargarEstadisticas = async () => {
-    try {
-      const response = await axios.get('http://localhost:3005/api/observaciones/estadisticas');
-      if (response.data.success) {
-        setEstadisticas(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error al cargar estadísticas:', error);
-    }
+  const calcularEstadisticas = (obs) => {
+    const sin_enviar = obs.filter(o => !o.validado_por_jefe).length;
+    const pendientes = obs.filter(o => o.validado_por_jefe && !o.validado).length;
+    const validadas = obs.filter(o => o.validado).length;
+
+    setEstadisticas({
+      total: obs.length,
+      sin_enviar,
+      pendientes,
+      validadas
+    });
   };
 
-  const validarObservacion = async (id) => {
-    if (!window.confirm('¿Está seguro de validar esta observación?')) return;
+  const validarPorAdmin = async (id) => {
+    if (!window.confirm('¿Está seguro de realizar la validación final? Esta acción es irreversible.')) return;
 
     try {
-      const response = await axios.put(`http://localhost:3005/api/observaciones/${id}/validar`, {
-        idUsuario: 1 // TODO: Obtener del contexto
+      const response = await axios.put(`http://localhost:3005/api/observaciones/${id}/validar-admin`, {
+        idUsuario: usuario.id
       });
 
       if (response.data.success) {
-        alert('✅ Observación validada exitosamente');
+        alert('✅ Observación validada y cerrada exitosamente');
         cargarObservaciones();
-        cargarEstadisticas();
       }
     } catch (error) {
-      alert('❌ Error al validar observación');
+      alert('❌ Error: ' + (error.response?.data?.message || error.message));
       console.error(error);
+    }
+  };
+
+  const getEstadoBadge = (obs) => {
+    if (obs.validado) {
+      return <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+        Validada
+      </span>;
+    } else if (obs.validado_por_jefe) {
+      return <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+        Pendiente
+      </span>;
+    } else {
+      return <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+        Sin Enviar
+      </span>;
     }
   };
 
@@ -68,11 +109,16 @@ function ListaObservaciones() {
       obs.observaciones_generales?.toLowerCase().includes(filtros.busqueda.toLowerCase()) ||
       obs.id_conglomerado?.toString().includes(filtros.busqueda);
 
-    const coincideValidado = !filtros.validado || 
-      (filtros.validado === 'true' && obs.validado) ||
-      (filtros.validado === 'false' && !obs.validado);
+    let coincideEstado = true;
+    if (filtros.estado === 'sin_enviar') {
+      coincideEstado = !obs.validado_por_jefe;
+    } else if (filtros.estado === 'pendiente') {
+      coincideEstado = obs.validado_por_jefe && !obs.validado;
+    } else if (filtros.estado === 'validada') {
+      coincideEstado = obs.validado;
+    }
 
-    return coincideBusqueda && coincideValidado;
+    return coincideBusqueda && coincideEstado;
   });
 
   return (
@@ -83,30 +129,40 @@ function ListaObservaciones() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <FileText className="w-8 h-8 text-green-600" />
-              <h1 className="text-2xl font-bold text-gray-800">Observaciones de Campo</h1>
+              <h1 className="text-2xl font-bold text-gray-800">
+                {esBrigadista ? 'Mis Observaciones' : 'Observaciones para Revisión'}
+              </h1>
             </div>
-            <button
-              onClick={() => navigate('/observaciones/registrar')}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              <Plus className="w-5 h-5" />
-              Nueva Observación
-            </button>
+            {esBrigadista && (
+              <button
+                onClick={() => navigate('/observaciones/registrar')}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                <Plus className="w-5 h-5" />
+                Nueva Observación
+              </button>
+            )}
           </div>
 
           {/* Estadísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Total Observaciones</p>
               <p className="text-2xl font-bold text-blue-600">{estadisticas.total}</p>
             </div>
+            {esBrigadista && (
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Sin Enviar</p>
+                <p className="text-2xl font-bold text-yellow-600">{estadisticas.sin_enviar}</p>
+              </div>
+            )}
+            <div className="bg-orange-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600">Pendientes</p>
+              <p className="text-2xl font-bold text-orange-600">{estadisticas.pendientes}</p>
+            </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Validadas</p>
               <p className="text-2xl font-bold text-green-600">{estadisticas.validadas}</p>
-            </div>
-            <div className="bg-yellow-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Pendientes</p>
-              <p className="text-2xl font-bold text-yellow-600">{estadisticas.pendientes}</p>
             </div>
           </div>
         </div>
@@ -128,13 +184,14 @@ function ListaObservaciones() {
             </div>
             <div>
               <select
-                value={filtros.validado}
-                onChange={(e) => setFiltros(prev => ({ ...prev, validado: e.target.value }))}
+                value={filtros.estado}
+                onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
-                <option value="">Todas</option>
-                <option value="true">Validadas</option>
-                <option value="false">Pendientes</option>
+                <option value="">Todos los estados</option>
+                {esBrigadista && <option value="sin_enviar">Sin Enviar</option>}
+                <option value="pendiente">Pendientes</option>
+                <option value="validada">Validadas</option>
               </select>
             </div>
           </div>
@@ -160,6 +217,7 @@ function ListaObservaciones() {
                     <th className="px-6 py-3 text-left text-sm font-semibold">Fecha</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold">Temperatura</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold">Clima</th>
+                    <th className="px-6 py-3 text-center text-sm font-semibold">Fotos</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold">Estado</th>
                     <th className="px-6 py-3 text-center text-sm font-semibold">Acciones</th>
                   </tr>
@@ -180,29 +238,36 @@ function ListaObservaciones() {
                       <td className="px-6 py-4 text-sm text-gray-900">
                         {obs.condiciones_clima || '-'}
                       </td>
+                      <td className="px-6 py-4 text-center">
+  <div className="flex items-center justify-center gap-1">
+    <Camera className="w-4 h-4 text-gray-500" />
+    <span className="text-sm text-gray-700">
+      {obs.fotos && obs.fotos.length > 0 ? obs.fotos.length : 0}
+    </span>
+  </div>
+</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          obs.validado 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {obs.validado ? 'Validada' : 'Pendiente'}
-                        </span>
+                        {getEstadoBadge(obs)}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
                           <button
-                            onClick={() => navigate(`/observaciones/detalle/${obs.id}`)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+onClick={() => {
+  if (esAdmin && !obs.validado) {
+    navigate(`/observaciones/editar/${obs.id}`);
+  } else {
+    navigate(`/observaciones/detalle/${obs.id}`);
+  }
+}}                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
                             title="Ver detalles"
                           >
                             <Eye className="w-5 h-5" />
                           </button>
-                          {!obs.validado && (
+                          {esAdmin && !obs.validado && (
                             <button
-                              onClick={() => validarObservacion(obs.id)}
+                              onClick={() => validarPorAdmin(obs.id)}
                               className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
-                              title="Validar"
+                              title="Validación Final"
                             >
                               <CheckCircle className="w-5 h-5" />
                             </button>

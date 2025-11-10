@@ -3,13 +3,19 @@ const cors = require('cors');
 require('dotenv').config();
 const { testConnection, sequelize } = require('./config/database');
 const observacionRoutes = require('./routes/observacionRoutes');
-
+const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3005;
+
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
+
+
+// Servir archivos estáticos (imágenes)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 
 // Rutas
 app.use('/api/observaciones', observacionRoutes);

@@ -58,6 +58,10 @@ const Conglomerado = sequelize.define('Conglomerado', {
   fecha_asignacion: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  fecha_inicio: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
 }, {
   tableName: 'conglomerado',

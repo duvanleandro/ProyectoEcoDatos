@@ -250,6 +250,63 @@ class ObservacionService {
       throw new Error('Error al obtener estadísticas: ' + error.message);
     }
   }
+  /**
+   * Agregar fotos a una observación
+   */
+  async agregarFotos(id, archivos) {
+    try {
+      const observacion = await Observacion.findByPk(id);
+      
+      if (!observacion) {
+        throw new Error('Observación no encontrada');
+      }
+
+      // Obtener fotos actuales
+      const fotosActuales = observacion.fotos || [];
+      
+      // Agregar nuevas fotos (solo guardar los nombres de archivo)
+      const nuevasFotos = archivos.map(file => file.filename);
+      const todasLasFotos = [...fotosActuales, ...nuevasFotos];
+      
+      observacion.fotos = todasLasFotos;
+      await observacion.save();
+      
+      return observacion;
+    } catch (error) {
+      throw new Error('Error al agregar fotos: ' + error.message);
+    }
+  }
+
+  /**
+   * Eliminar una foto de una observación
+   */
+  async eliminarFoto(id, nombreFoto) {
+    try {
+      const observacion = await Observacion.findByPk(id);
+      
+      if (!observacion) {
+        throw new Error('Observación no encontrada');
+      }
+
+      // Filtrar la foto a eliminar
+      const fotosActualizadas = (observacion.fotos || []).filter(foto => foto !== nombreFoto);
+      observacion.fotos = fotosActualizadas;
+      await observacion.save();
+
+      // Eliminar archivo físico
+      const fs = require('fs');
+      const path = require('path');
+      const filePath = path.join(__dirname, '../../uploads/observaciones', id.toString(), nombreFoto);
+      
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      
+      return observacion;
+    } catch (error) {
+      throw new Error('Error al eliminar foto: ' + error.message);
+    }
+  }
 }
 
 module.exports = new ObservacionService();

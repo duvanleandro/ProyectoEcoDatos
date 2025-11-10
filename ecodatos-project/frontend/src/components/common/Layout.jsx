@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, LogOut, User, ArrowLeft } from 'lucide-react';
+import BannerUsuarioInactivo from './BannerUsuarioInactivo';
+import { useUsuario } from '../../context/UsuarioContext';
 
 function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { cerrarSesion } = useUsuario();
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
+    cerrarSesion();
     navigate('/login');
   };
 
@@ -53,12 +55,15 @@ function Layout({ children }) {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2">
+            <button
+              onClick={() => navigate('/perfil')}
+              className="hidden md:flex items-center gap-2 bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition"
+            >
               <User size={20} />
               <span className="text-sm">
-                {usuario.usuario} ({usuario.tipo_usuario})
+{usuario.nombre_apellidos || usuario.usuario} ({usuario.tipo_usuario})
               </span>
-            </div>
+            </button>
             <button
               onClick={handleLogout}
               className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg flex items-center gap-2 transition"
@@ -72,6 +77,7 @@ function Layout({ children }) {
 
       {/* Content */}
       <main className="p-6">
+        <BannerUsuarioInactivo />
         {children}
       </main>
     </div>

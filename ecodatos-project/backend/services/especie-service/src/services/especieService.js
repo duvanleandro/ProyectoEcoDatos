@@ -110,17 +110,17 @@ class EspecieService {
   /**
    * Obtener estadísticas
    */
-  async obtenerEstadisticas() {
-    try {
-      const total = await Especie.count();
-      
-      return {
-        total_especies: total
-      };
-    } catch (error) {
-      throw new Error('Error al obtener estadísticas: ' + error.message);
-    }
+ async obtenerEstadisticas() {
+  try {
+    const total = await Especie.count();
+    
+    return {
+      total: total
+    };
+  } catch (error) {
+    throw new Error('Error al obtener estadísticas: ' + error.message);
   }
+}
 }
 
 module.exports = new EspecieService();

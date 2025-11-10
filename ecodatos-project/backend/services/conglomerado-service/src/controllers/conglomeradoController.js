@@ -182,6 +182,27 @@ class ConglomeradoController {
       });
     }
   }
+
+  /**
+   * GET /api/conglomerados/brigada/:brigadaId/activo
+   * Obtener conglomerado activo (En_Proceso) de una brigada específica
+   */
+  async obtenerActivoPorBrigada(req, res) {
+    try {
+      const { brigadaId } = req.params;
+      const conglomerado = await conglomeradoService.obtenerActivoPorBrigada(brigadaId);
+
+      res.status(200).json({
+        success: true,
+        data: conglomerado
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 }
 
 module.exports = new ConglomeradoController();

@@ -240,6 +240,57 @@ class ObservacionController {
       });
     }
   }
+
+  /**
+   * Subir fotos a observación
+   */
+  async subirFotos(req, res) {
+    try {
+      const { id } = req.params;
+      const archivos = req.files;
+      
+      if (!archivos || archivos.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No se enviaron archivos'
+        });
+      }
+
+      const observacion = await observacionService.agregarFotos(id, archivos);
+      
+      res.json({
+        success: true,
+        message: `${archivos.length} foto(s) agregada(s) exitosamente`,
+        data: observacion
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Eliminar foto de observación
+   */
+  async eliminarFoto(req, res) {
+    try {
+      const { id, nombreFoto } = req.params;
+      const observacion = await observacionService.eliminarFoto(id, nombreFoto);
+      
+      res.json({
+        success: true,
+        message: 'Foto eliminada exitosamente',
+        data: observacion
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 }
 
 module.exports = new ObservacionController();

@@ -1,8 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { UsuarioProvider } from './context/UsuarioContext';
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
 import ListaConglomerados from './pages/conglomerados/ListaConglomerados';
 import GenerarConglomerados from './pages/conglomerados/GenerarConglomerados';
+import DetalleConglomerado from './pages/conglomerados/DetalleConglomerado';
 import AsignarBrigada from './pages/brigadas/AsignarBrigada';
 import MisConglomerados from './pages/brigadas/MisConglomerados';
 import GestionBrigadas from './pages/brigadas/GestionBrigadas';
@@ -12,6 +14,10 @@ import ConsultaEspecies from './pages/especies/ConsultaEspecies';
 import RegistrarObservacion from './pages/observaciones/RegistrarObservacion';
 import ListaObservaciones from './pages/observaciones/ListaObservaciones';
 import DetalleObservacion from './pages/observaciones/DetalleObservacion';
+import EditarObservacionAdmin from './pages/observaciones/EditarObservacionAdmin';
+import IndicadoresReportes from './pages/reportes/IndicadoresReportes';
+import MiPerfil from './pages/perfil/MiPerfil';
+
 
 // Componente para proteger rutas (requiere autenticación)
 function ProtectedRoute({ children }) {
@@ -26,8 +32,9 @@ function ProtectedRoute({ children }) {
 
 function App() {
   return (
-    <Router>
-      <Routes>
+    <UsuarioProvider>
+      <Router>
+        <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         
@@ -51,13 +58,22 @@ function App() {
           } 
         />
 
-        <Route 
-          path="/conglomerados/registrar" 
+        <Route
+          path="/conglomerados/registrar"
           element={
             <ProtectedRoute>
               <GenerarConglomerados />
             </ProtectedRoute>
-          } 
+          }
+        />
+
+        <Route
+          path="/conglomerados/:id"
+          element={
+            <ProtectedRoute>
+              <DetalleConglomerado />
+            </ProtectedRoute>
+          }
         />
 
         {/* Brigadas */}
@@ -145,12 +161,36 @@ function App() {
           } 
         />
 
+        <Route 
+  path="/observaciones/editar/:id" 
+  element={
+    <ProtectedRoute>
+      <EditarObservacionAdmin />
+    </ProtectedRoute>
+  } 
+/>
+
+<Route 
+  path="/observaciones/detalle/:id" 
+  element={
+    <ProtectedRoute>
+      <DetalleObservacion />
+    </ProtectedRoute>
+  } 
+/>
+
         {/* Rutas pendientes */}
         <Route path="/laboratorio/clasificacion" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/reportes" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      </Routes>
-    </Router>
+        <Route path="/reportes" element={<ProtectedRoute><IndicadoresReportes /></ProtectedRoute>} />
+
+        {/* Perfil de Usuario */}
+        <Route path="/perfil" element={<ProtectedRoute><MiPerfil /></ProtectedRoute>} />
+        </Routes>
+      </Router>
+    </UsuarioProvider>
   );
 }
+
+
 
 export default App;

@@ -4,7 +4,7 @@
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 echo -e "${RED}╔════════════════════════════════════════════════════════╗${NC}"
 echo -e "${RED}║                                                        ║${NC}"
@@ -33,40 +33,46 @@ sudo -u postgres psql -d ecodatos << 'EOSQL'
 -- Deshabilitar restricciones de foreign key temporalmente
 SET session_replication_role = 'replica';
 
--- 1. ELIMINAR DATOS DE TODAS LAS TABLAS
+-- 1. ELIMINAR DATOS DE TODAS LAS TABLAS (en orden por dependencias)
+TRUNCATE TABLE muestraespecie CASCADE;
+TRUNCATE TABLE subparcelamuestra CASCADE;
+TRUNCATE TABLE clasificaciontaxonomica CASCADE;
+TRUNCATE TABLE conglomeradoindicador CASCADE;
+TRUNCATE TABLE conglomeradosubparcela CASCADE;
 TRUNCATE TABLE brigadaconglomerado CASCADE;
 TRUNCATE TABLE brigadaintegrante CASCADE;
-TRUNCATE TABLE conglomeradosubparcela CASCADE;
-TRUNCATE TABLE subparcelamuestra CASCADE;
-TRUNCATE TABLE muestraespecie CASCADE;
-TRUNCATE TABLE conglomeradoindicador CASCADE;
-TRUNCATE TABLE clasificaciontaxonomica CASCADE;
+TRUNCATE TABLE proyectobrigada CASCADE;
 
-TRUNCATE TABLE subparcela CASCADE;
+-- Tablas principales
+TRUNCATE TABLE observacion CASCADE;
 TRUNCATE TABLE muestra CASCADE;
 TRUNCATE TABLE especie CASCADE;
-TRUNCATE TABLE indicador CASCADE;
+TRUNCATE TABLE subparcela CASCADE;
 TRUNCATE TABLE conglomerado CASCADE;
+TRUNCATE TABLE indicador CASCADE;
 TRUNCATE TABLE brigada CASCADE;
 TRUNCATE TABLE integrante CASCADE;
-TRUNCATE TABLE proyectobrigada CASCADE;
 
 -- Eliminar todos los usuarios
 TRUNCATE TABLE usuarios CASCADE;
 
 -- 2. REINICIAR SECUENCIAS (IDs) A 1
-ALTER SEQUENCE usuarios_id_seq RESTART WITH 1;
-ALTER SEQUENCE integrante_id_seq RESTART WITH 1;
-ALTER SEQUENCE brigada_id_seq RESTART WITH 1;
-ALTER SEQUENCE conglomerado_id_seq RESTART WITH 1;
-ALTER SEQUENCE subparcela_id_seq RESTART WITH 1;
-ALTER SEQUENCE muestra_id_seq RESTART WITH 1;
-ALTER SEQUENCE especie_id_seq RESTART WITH 1;
-ALTER SEQUENCE indicador_id_seq RESTART WITH 1;
-ALTER SEQUENCE clasificaciontaxonomica_id_seq RESTART WITH 1;
+DO $$
+DECLARE
+    seq RECORD;
+BEGIN
+    -- Reiniciar todas las secuencias automáticamente
+    FOR seq IN
+        SELECT sequence_name
+        FROM information_schema.sequences
+        WHERE sequence_schema = 'public'
+    LOOP
+        EXECUTE 'ALTER SEQUENCE ' || seq.sequence_name || ' RESTART WITH 1';
+    END LOOP;
+END $$;
 
 -- 3. RECREAR USUARIO ADMIN
--- Contraseña: 1234 (hash bcrypt generado)
+-- Contraseña: 1234 (hash bcrypt)
 INSERT INTO usuarios (usuario, contraseña, tipo_usuario, activo, fecha_creacion) 
 VALUES (
   'admin', 
@@ -80,30 +86,55 @@ VALUES (
 SET session_replication_role = 'origin';
 
 -- 4. VERIFICAR ESTADO
-SELECT 'Usuarios restantes:' as tabla, COUNT(*) as total FROM usuarios
+\echo ''
+\echo '═══════════════════════════════════════════'
+\echo '  📊 ESTADO POST-RESETEO'
+\echo '═══════════════════════════════════════════'
+\echo ''
+
+SELECT 
+    'Usuarios' as "Tabla",
+    COUNT(*) as "Total"
+FROM usuarios
 UNION ALL
-SELECT 'Integrantes:', COUNT(*) FROM integrante
+SELECT 'Integrantes', COUNT(*) FROM integrante
 UNION ALL
-SELECT 'Brigadas:', COUNT(*) FROM brigada
+SELECT 'Brigadas', COUNT(*) FROM brigada
 UNION ALL
-SELECT 'Conglomerados:', COUNT(*) FROM conglomerado
+SELECT 'Conglomerados', COUNT(*) FROM conglomerado
 UNION ALL
-SELECT 'Subparcelas:', COUNT(*) FROM subparcela
+SELECT 'Subparcelas', COUNT(*) FROM subparcela
 UNION ALL
-SELECT 'Especies:', COUNT(*) FROM especie;
+SELECT 'Observaciones', COUNT(*) FROM observacion
+UNION ALL
+SELECT 'Muestras', COUNT(*) FROM muestra
+UNION ALL
+SELECT 'Especies', COUNT(*) FROM especie;
 
 -- 5. MOSTRAR USUARIO ADMIN CREADO
-SELECT 'Usuario admin creado:' as info, id, usuario, tipo_usuario FROM usuarios WHERE usuario = 'admin';
+\echo ''
+SELECT '✅ Usuario admin creado:' as "Info", id, usuario, tipo_usuario FROM usuarios WHERE usuario = 'admin';
 
 EOSQL
 
 echo ""
-echo -e "${GREEN}✅ Base de datos reseteada exitosamente${NC}"
-echo -e "${GREEN}✅ Usuario admin recreado (ID=1)${NC}"
-echo -e "${GREEN}✅ Todas las secuencias reiniciadas${NC}"
+echo -e "${GREEN}╔════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║  ✅ BASE DE DATOS RESETEADA EXITOSAMENTE  ║${NC}"
+echo -e "${GREEN}╚════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${YELLOW}📝 Credenciales de acceso:${NC}"
-echo -e "${YELLOW}   Usuario: admin${NC}"
-echo -e "${YELLOW}   Contraseña: 1234${NC}"
+echo -e "${GREEN}   👤 Usuario: ${NC}admin"
+echo -e "${GREEN}   🔑 Contraseña: ${NC}1234"
+echo ""
+echo -e "${YELLOW}🔄 Servicios a reiniciar:${NC}"
+echo -e "   • auth-service (puerto 3001)"
+echo -e "   • conglomerado-service (puerto 3002)"
+echo -e "   • brigada-service (puerto 3003)"
+echo -e "   • especie-service (puerto 3004)"
+echo -e "   • observacion-service (puerto 3005)"
+echo ""
+echo -e "${YELLOW}💡 Comandos útiles:${NC}"
+echo -e "   • Ver estado: ${GREEN}./check-database.sh${NC}"
+echo -e "   • Reiniciar servicios: ${GREEN}cd backend/services/[servicio] && npm run dev${NC}"
 echo ""
 

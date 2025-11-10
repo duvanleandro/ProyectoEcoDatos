@@ -36,3 +36,7 @@ Thumbs.db
 # Temporal
 *.tmp
 temp/
+
+# Uploads de archivos
+uploads/
+**/uploads/

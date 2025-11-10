@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import Layout from '../../components/common/Layout';
-import { UserPlus, Users, Trash2, Search, Eye, EyeOff } from 'lucide-react';
-import axios from 'axios';
+import { UserPlus, Users, Trash2, Search, Eye, EyeOff, Edit, CheckCircle, XCircle } from 'lucide-react';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function GestionUsuarios() {
   const [usuarios, setUsuarios] = useState([]);
@@ -21,16 +22,23 @@ function GestionUsuarios() {
     especialidad: ''
   });
 
+  const [editandoUsuario, setEditandoUsuario] = useState(null);
+  const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
+  const [usuarioEditar, setUsuarioEditar] = useState({
+    nombre_apellidos: '',
+    telefono: '',
+    email: '',
+    especialidad: '',
+    contrasena: ''
+  });
+
   useEffect(() => {
     cargarUsuarios();
   }, []);
 
   const cargarUsuarios = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3001/api/auth/usuarios', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(`${API_CONFIG.AUTH_SERVICE}${ENDPOINTS.AUTH.USUARIOS}`);
       
       if (response.data.success) {
         setUsuarios(response.data.data);
@@ -46,11 +54,9 @@ function GestionUsuarios() {
     setMensaje('');
 
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.post(
-        'http://localhost:3001/api/auth/crear-usuario',
-        nuevoUsuario,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_CONFIG.AUTH_SERVICE}${ENDPOINTS.AUTH.CREAR_USUARIO}`,
+        nuevoUsuario
       );
 
       if (response.data.success) {
@@ -78,14 +84,74 @@ function GestionUsuarios() {
     if (!window.confirm(`¿Eliminar usuario "${usuario}"?`)) return;
 
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.delete(
-        `http://localhost:3001/api/auth/usuarios/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_CONFIG.AUTH_SERVICE}${ENDPOINTS.AUTH.USUARIOS}/${id}`
       );
 
       if (response.data.success) {
         setMensaje('✅ Usuario eliminado exitosamente');
+        cargarUsuarios();
+      }
+    } catch (error) {
+      setMensaje('❌ ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleAbrirEditar = (usuario) => {
+    setEditandoUsuario(usuario);
+    setUsuarioEditar({
+      nombre_apellidos: usuario.nombre_apellidos || '',
+      telefono: usuario.telefono || '',
+      email: usuario.email || '',
+      especialidad: usuario.especialidad || '',
+      contrasena: ''
+    });
+    setMostrarModalEditar(true);
+  };
+
+  const handleEditarUsuario = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMensaje('');
+
+    try {
+      const response = await axios.put(
+        `${API_CONFIG.AUTH_SERVICE}${ENDPOINTS.AUTH.USUARIOS}/${editandoUsuario.id}`,
+        usuarioEditar
+      );
+
+      if (response.data.success) {
+        setMensaje('✅ Usuario actualizado exitosamente');
+        setMostrarModalEditar(false);
+        setEditandoUsuario(null);
+        setUsuarioEditar({
+          nombre_apellidos: '',
+          telefono: '',
+          email: '',
+          especialidad: '',
+          contrasena: ''
+        });
+        cargarUsuarios();
+      }
+    } catch (error) {
+      setMensaje('❌ ' + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleActivo = async (id, activo, nombreUsuario) => {
+    const accion = activo ? 'desactivar' : 'activar';
+    if (!window.confirm(`¿Está seguro de ${accion} al usuario "${nombreUsuario}"?`)) return;
+
+    try {
+      const response = await axios.patch(
+        `${API_CONFIG.AUTH_SERVICE}${ENDPOINTS.AUTH.USUARIOS}/${id}/toggle-activo`,
+        {}
+      );
+
+      if (response.data.success) {
+        setMensaje(`✅ ${response.data.message}`);
         cargarUsuarios();
       }
     } catch (error) {
@@ -354,6 +420,118 @@ function GestionUsuarios() {
           </div>
         )}
 
+        {/* Modal de Edición */}
+        {mostrarModalEditar && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-4">
+                Editar Usuario: {editandoUsuario?.usuario}
+              </h2>
+              <form onSubmit={handleEditarUsuario}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Nombre Completo */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Nombre Completo *
+                    </label>
+                    <input
+                      type="text"
+                      value={usuarioEditar.nombre_apellidos}
+                      onChange={(e) => setUsuarioEditar({...usuarioEditar, nombre_apellidos: e.target.value})}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                      required
+                    />
+                  </div>
+
+                  {/* Teléfono */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Teléfono
+                    </label>
+                    <input
+                      type="tel"
+                      value={usuarioEditar.telefono}
+                      onChange={(e) => setUsuarioEditar({...usuarioEditar, telefono: e.target.value})}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={usuarioEditar.email}
+                      onChange={(e) => setUsuarioEditar({...usuarioEditar, email: e.target.value})}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+
+                  {/* Especialidad */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Especialidad / Formación
+                    </label>
+                    <input
+                      type="text"
+                      value={usuarioEditar.especialidad}
+                      onChange={(e) => setUsuarioEditar({...usuarioEditar, especialidad: e.target.value})}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                      placeholder="Ej: Ingeniería Forestal, Botánica"
+                    />
+                  </div>
+
+                  {/* Contraseña (opcional) */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Nueva Contraseña (dejar vacío para mantener la actual)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={mostrarContrasena ? 'text' : 'password'}
+                        value={usuarioEditar.contrasena}
+                        onChange={(e) => setUsuarioEditar({...usuarioEditar, contrasena: e.target.value})}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                        placeholder="Ingrese nueva contraseña si desea cambiarla"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMostrarContrasena(!mostrarContrasena)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      >
+                        {mostrarContrasena ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-primary hover:bg-secondary text-white px-6 py-3 rounded-lg flex items-center gap-2 transition disabled:opacity-50"
+                  >
+                    <Edit size={20} />
+                    {loading ? 'Actualizando...' : 'Guardar Cambios'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMostrarModalEditar(false);
+                      setEditandoUsuario(null);
+                    }}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg transition"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Tabla de Usuarios */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="p-6 border-b">
@@ -411,15 +589,42 @@ function GestionUsuarios() {
                         </span>
                       </td>
                       <td>
-                        {usuario.tipo_usuario !== 'admin' && (
+                        <div className="flex items-center gap-2">
+                          {/* Botón Editar */}
                           <button
-                            onClick={() => handleEliminarUsuario(usuario.id, usuario.usuario)}
-                            className="text-red-500 hover:text-red-700 flex items-center gap-1"
+                            onClick={() => handleAbrirEditar(usuario)}
+                            className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                            title="Editar usuario"
                           >
-                            <Trash2 size={16} />
-                            <span className="text-sm">Eliminar</span>
+                            <Edit size={16} />
                           </button>
-                        )}
+
+                          {/* Botón Activar/Desactivar (solo para no-admin) */}
+                          {usuario.tipo_usuario !== 'admin' && (
+                            <button
+                              onClick={() => handleToggleActivo(usuario.id, usuario.activo, usuario.usuario)}
+                              className={`flex items-center gap-1 ${
+                                usuario.activo
+                                  ? 'text-orange-500 hover:text-orange-700'
+                                  : 'text-green-500 hover:text-green-700'
+                              }`}
+                              title={usuario.activo ? 'Desactivar usuario' : 'Activar usuario'}
+                            >
+                              {usuario.activo ? <XCircle size={16} /> : <CheckCircle size={16} />}
+                            </button>
+                          )}
+
+                          {/* Botón Eliminar (solo para no-admin) */}
+                          {usuario.tipo_usuario !== 'admin' && (
+                            <button
+                              onClick={() => handleEliminarUsuario(usuario.id, usuario.usuario)}
+                              className="text-red-500 hover:text-red-700 flex items-center gap-1"
+                              title="Eliminar usuario"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))

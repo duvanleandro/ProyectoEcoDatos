@@ -1,0 +1,376 @@
+import { useState, useEffect } from 'react';
+import Layout from '../../components/common/Layout';
+import { BarChart3, TrendingUp, FileText, Download, Calendar, Filter, MapPin, Thermometer, Droplets, TreePine, Users } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
+
+function IndicadoresReportes() {
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+  const [loading, setLoading] = useState(true);
+  const [estadisticas, setEstadisticas] = useState({
+    conglomerados: { total: 0, pendientes: 0, aprobados: 0, rechazados: 0, asignados: 0, en_proceso: 0, completados: 0 },
+    brigadas: { total: 0, activas: 0 },
+    observaciones: { total: 0, sin_enviar: 0, pendientes: 0, validadas: 0 },
+    especies: { total: 0 },
+    usuarios: { total: 0, por_tipo: {} }
+  });
+  
+  const [datosClimaticos, setDatosClimaticos] = useState({
+    temperatura_promedio: 0,
+    humedad_promedio: 0,
+    condiciones_mas_comunes: {}
+  });
+
+  const [filtros, setFiltros] = useState({
+    fechaInicio: '',
+    fechaFin: ''
+  });
+
+  useEffect(() => {
+    cargarEstadisticas();
+  }, []);
+
+  const cargarEstadisticas = async () => {
+    setLoading(true);
+    try {
+      // Cargar estadísticas de conglomerados
+      const responseCong = await axios.get('http://localhost:3002/api/conglomerados/estadisticas');
+      if (responseCong.data.success) {
+        setEstadisticas(prev => ({
+          ...prev,
+          conglomerados: responseCong.data.data
+        }));
+      }
+
+      // Cargar estadísticas de brigadas
+      const responseBrig = await axios.get('http://localhost:3003/api/brigadas/estadisticas');
+      if (responseBrig.data.success) {
+        setEstadisticas(prev => ({
+          ...prev,
+          brigadas: responseBrig.data.data
+        }));
+      }
+
+      // Cargar estadísticas de usuarios
+      const responseUsuarios = await axios.get('http://localhost:3001/api/auth/estadisticas');
+      if (responseUsuarios.data.success) {
+        setEstadisticas(prev => ({
+          ...prev,
+          usuarios: responseUsuarios.data.data
+        }));
+      }
+
+      // Cargar observaciones para análisis climático
+      const responseObs = await axios.get('http://localhost:3005/api/observaciones');
+      if (responseObs.data.success) {
+        const observaciones = responseObs.data.data;
+        
+        // Calcular estadísticas de observaciones
+        const sin_enviar = observaciones.filter(o => !o.validado_por_jefe).length;
+        const pendientes = observaciones.filter(o => o.validado_por_jefe && !o.validado).length;
+        const validadas = observaciones.filter(o => o.validado).length;
+        
+        setEstadisticas(prev => ({
+          ...prev,
+          observaciones: {
+            total: observaciones.length,
+            sin_enviar,
+            pendientes,
+            validadas
+          }
+        }));
+
+        // Calcular datos climáticos
+        calcularDatosClimaticos(observaciones);
+      }
+
+      // Cargar estadísticas de especies
+      const responseEsp = await axios.get('http://localhost:3004/api/especies/estadisticas');
+      if (responseEsp.data.success) {
+        setEstadisticas(prev => ({
+          ...prev,
+          especies: responseEsp.data.data
+        }));
+      }
+
+    } catch (error) {
+      console.error('Error al cargar estadísticas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calcularDatosClimaticos = (observaciones) => {
+    if (observaciones.length === 0) return;
+
+    // Filtrar observaciones con datos climáticos
+    const obsConClima = observaciones.filter(o => o.temperatura && o.humedad);
+    
+    if (obsConClima.length === 0) return;
+
+    // Calcular promedios
+    const temperatura_promedio = obsConClima.reduce((sum, o) => sum + parseFloat(o.temperatura || 0), 0) / obsConClima.length;
+    const humedad_promedio = obsConClima.reduce((sum, o) => sum + parseInt(o.humedad || 0), 0) / obsConClima.length;
+
+    // Contar condiciones climáticas
+    const condiciones = {};
+    observaciones.forEach(o => {
+      if (o.condiciones_clima) {
+        condiciones[o.condiciones_clima] = (condiciones[o.condiciones_clima] || 0) + 1;
+      }
+    });
+
+    setDatosClimaticos({
+      temperatura_promedio: temperatura_promedio.toFixed(1),
+      humedad_promedio: humedad_promedio.toFixed(0),
+      condiciones_mas_comunes: condiciones
+    });
+  };
+
+  const generarReporte = async (tipo) => {
+    alert(`Generando reporte de tipo: ${tipo}\n(Funcionalidad en desarrollo)`);
+  };
+
+  const condicionMasComun = Object.keys(datosClimaticos.condiciones_mas_comunes).reduce((a, b) => 
+    datosClimaticos.condiciones_mas_comunes[a] > datosClimaticos.condiciones_mas_comunes[b] ? a : b
+  , 'N/A');
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="text-center py-8">Cargando estadísticas...</div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <BarChart3 className="w-8 h-8 text-green-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Indicadores y Reportes</h1>
+                <p className="text-sm text-gray-600">Estadísticas y análisis forestales</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => generarReporte('pdf')}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                <Download className="w-5 h-5" />
+                Exportar PDF
+              </button>
+              <button
+                onClick={() => generarReporte('excel')}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                <Download className="w-5 h-5" />
+                Exportar Excel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Filtros de fecha */}
+        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+          <div className="flex items-center gap-4">
+            <Calendar className="w-5 h-5 text-gray-600" />
+            <div className="flex gap-4 flex-1">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
+                <input
+                  type="date"
+                  value={filtros.fechaInicio}
+                  onChange={(e) => setFiltros(prev => ({ ...prev, fechaInicio: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Fin</label>
+                <input
+                  type="date"
+                  value={filtros.fechaFin}
+                  onChange={(e) => setFiltros(prev => ({ ...prev, fechaFin: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={cargarEstadisticas}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Filter className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Estadísticas Generales */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
+          {/* Conglomerados */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-700">Conglomerados</h3>
+              <MapPin className="w-6 h-6 text-blue-600" />
+            </div>
+            <p className="text-3xl font-bold text-blue-600 mb-2">{estadisticas.conglomerados.total}</p>
+            <div className="space-y-1 text-sm text-gray-600">
+              <p>• Pendientes: {estadisticas.conglomerados.pendientes}</p>
+              <p>• Aprobados: {estadisticas.conglomerados.aprobados}</p>
+              <p>• Rechazados: {estadisticas.conglomerados.rechazados}</p>
+              <p>• Asignados: {estadisticas.conglomerados.asignados}</p>
+              <p>• En Proceso: {estadisticas.conglomerados.en_proceso}</p>
+              <p>• Completados: {estadisticas.conglomerados.completados}</p>
+            </div>
+          </div>
+
+          {/* Brigadas */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-700">Brigadas</h3>
+              <TrendingUp className="w-6 h-6 text-purple-600" />
+            </div>
+            <p className="text-3xl font-bold text-purple-600 mb-2">{estadisticas.brigadas.total}</p>
+            <div className="space-y-1 text-sm text-gray-600">
+              <p>• Activas: {estadisticas.brigadas.activas}</p>
+              <p>• Inactivas: {estadisticas.brigadas.total - estadisticas.brigadas.activas}</p>
+            </div>
+          </div>
+
+          {/* Observaciones */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-700">Observaciones</h3>
+              <FileText className="w-6 h-6 text-green-600" />
+            </div>
+            <p className="text-3xl font-bold text-green-600 mb-2">{estadisticas.observaciones.total}</p>
+            <div className="space-y-1 text-sm text-gray-600">
+              <p>• Sin Enviar: {estadisticas.observaciones.sin_enviar}</p>
+              <p>• Pendientes: {estadisticas.observaciones.pendientes}</p>
+              <p>• Validadas: {estadisticas.observaciones.validadas}</p>
+            </div>
+          </div>
+
+          {/* Especies */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-700">Especies</h3>
+              <TreePine className="w-6 h-6 text-green-700" />
+            </div>
+            <p className="text-3xl font-bold text-green-700 mb-2">{estadisticas.especies.total}</p>
+            <div className="space-y-1 text-sm text-gray-600">
+              <p>• Registradas en el sistema</p>
+            </div>
+          </div>
+
+          {/* Usuarios */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-700">Usuarios</h3>
+              <Users className="w-6 h-6 text-indigo-600" />
+            </div>
+            <p className="text-3xl font-bold text-indigo-600 mb-2">{estadisticas.usuarios.total}</p>
+            <div className="space-y-1 text-xs text-gray-600">
+              {Object.entries(estadisticas.usuarios.por_tipo || {}).map(([tipo, cantidad]) => (
+                <p key={tipo}>• {tipo}: {cantidad}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Análisis Climático */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Análisis Climático</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-orange-50 p-6 rounded-lg">
+              <div className="flex items-center gap-3 mb-2">
+                <Thermometer className="w-6 h-6 text-orange-600" />
+                <h3 className="font-semibold text-gray-700">Temperatura Promedio</h3>
+              </div>
+              <p className="text-4xl font-bold text-orange-600">{datosClimaticos.temperatura_promedio}°C</p>
+            </div>
+
+            <div className="bg-blue-50 p-6 rounded-lg">
+              <div className="flex items-center gap-3 mb-2">
+                <Droplets className="w-6 h-6 text-blue-600" />
+                <h3 className="font-semibold text-gray-700">Humedad Promedio</h3>
+              </div>
+              <p className="text-4xl font-bold text-blue-600">{datosClimaticos.humedad_promedio}%</p>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <div className="flex items-center gap-3 mb-2">
+                <TreePine className="w-6 h-6 text-gray-600" />
+                <h3 className="font-semibold text-gray-700">Condición Más Común</h3>
+              </div>
+              <p className="text-2xl font-bold text-gray-700 capitalize">
+                {condicionMasComun.replace('_', ' ')}
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                {datosClimaticos.condiciones_mas_comunes[condicionMasComun] || 0} registros
+              </p>
+            </div>
+          </div>
+        </div>
+
+{/* Gráficos */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  {/* Gráfico de Barras - Estado de Conglomerados */}
+  <div className="bg-white rounded-lg shadow-md p-6">
+    <h3 className="text-lg font-bold text-gray-800 mb-4">Estado de Conglomerados</h3>
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={[
+        { estado: 'Pendientes', cantidad: estadisticas.conglomerados.pendientes },
+        { estado: 'Aprobados', cantidad: estadisticas.conglomerados.aprobados },
+        { estado: 'Rechazados', cantidad: estadisticas.conglomerados.rechazados },
+        { estado: 'Asignados', cantidad: estadisticas.conglomerados.asignados },
+        { estado: 'En Proceso', cantidad: estadisticas.conglomerados.en_proceso },
+        { estado: 'Completados', cantidad: estadisticas.conglomerados.completados }
+      ]}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="estado" angle={-45} textAnchor="end" height={100} />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        <Bar dataKey="cantidad" fill="#3b82f6" />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+
+  {/* Gráfico Circular - Progreso de Observaciones */}
+  <div className="bg-white rounded-lg shadow-md p-6">
+    <h3 className="text-lg font-bold text-gray-800 mb-4">Progreso de Observaciones</h3>
+    <ResponsiveContainer width="100%" height={300}>
+      <PieChart>
+        <Pie
+          data={[
+            { name: 'Sin Enviar', value: estadisticas.observaciones.sin_enviar, fill: '#fbbf24' },
+            { name: 'Pendientes', value: estadisticas.observaciones.pendientes, fill: '#f97316' },
+            { name: 'Validadas', value: estadisticas.observaciones.validadas, fill: '#22c55e' }
+          ]}
+          cx="50%"
+          cy="50%"
+          labelLine={false}
+          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+          outerRadius={80}
+          dataKey="value"
+        >
+        </Pie>
+        <Tooltip />
+        <Legend />
+      </PieChart>
+    </ResponsiveContainer>
+  </div>
+</div>
+      </div>
+    </Layout>
+  );
+}
+
+export default IndicadoresReportes;

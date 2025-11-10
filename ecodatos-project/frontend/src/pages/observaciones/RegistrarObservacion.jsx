@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/Layout';
-import { FileText, Save, X, MapPin, CloudRain, TreePine, Upload } from 'lucide-react';
 import axios from 'axios';
+import { FileText, Save, X, MapPin, CloudRain, TreePine, Upload, Send, Lock } from 'lucide-react';
 
 function RegistrarObservacion() {
   const navigate = useNavigate();
@@ -13,6 +13,9 @@ function RegistrarObservacion() {
   const [mensaje, setMensaje] = useState('');
   const [conglomerado, setConglomerado] = useState(null);
   const [observacionExistente, setObservacionExistente] = useState(null);
+  const [puedeEditar, setPuedeEditar] = useState(true);
+  const [fotosSubidas, setFotosSubidas] = useState([]);
+  const [subiendoFotos, setSubiendoFotos] = useState(false);
 
   const [formData, setFormData] = useState({
     id_conglomerado: '',
@@ -73,30 +76,65 @@ function RegistrarObservacion() {
 
       const idBrigada = responseBrigada.data.data.id;
 
-      // Buscar conglomerado EN PROCESO de esta brigada
+      // Buscar conglomerado EN PROCESO o COMPLETADO de esta brigada
       const responseConglomerados = await axios.get(`http://localhost:3002/api/conglomerados`);
       const conglomerados = responseConglomerados.data.data;
       
-      const conglomeradoEnProceso = conglomerados.find(
-        c => c.brigada_id === idBrigada && c.estado === 'En_Proceso'
-      );
+// Priorizar conglomerado EN PROCESO
+let conglomeradoActual = conglomerados.find(
+  c => c.brigada_id === idBrigada && c.estado === 'En_Proceso'
+);
 
-      if (!conglomeradoEnProceso) {
-        setMensaje('⚠️ No tienes ningún conglomerado en proceso. Inicia uno desde "Mis Conglomerados Asignados".');
+// Si no hay en proceso, buscar completado NO validado por jefe o sin observación
+if (!conglomeradoActual) {
+  const completados = conglomerados.filter(
+    c => c.brigada_id === idBrigada && c.estado === 'Completado'
+  );
+
+  // Verificar cuál NO ha sido enviado o NO tiene observación
+  for (const comp of completados) {
+    try {
+      const responseObs = await axios.get(`http://localhost:3005/api/observaciones/conglomerado/${comp.id}`);
+      if (responseObs.data.success && responseObs.data.data.length > 0) {
+        const obs = responseObs.data.data[0];
+        if (!obs.validado_por_jefe) {
+          conglomeradoActual = comp;
+          break;
+        }
+      } else {
+        // No tiene observación registrada, permitir registrarla
+        conglomeradoActual = comp;
+        break;
+      }
+    } catch (error) {
+      // Si hay error al obtener observación, asumir que no existe
+      conglomeradoActual = comp;
+      break;
+    }
+  }
+}
+
+      if (!conglomeradoActual) {
+        setMensaje('⚠️ No tienes ningún conglomerado en proceso o completado. Inicia uno desde "Mis Conglomerados Asignados".');
         setCargando(false);
         return;
       }
 
-      setConglomerado(conglomeradoEnProceso);
+      setConglomerado(conglomeradoActual);
 
       // Buscar si ya existe una observación para este conglomerado
       const responseObs = await axios.get(
-        `http://localhost:3005/api/observaciones/conglomerado/${conglomeradoEnProceso.id}`
+        `http://localhost:3005/api/observaciones/conglomerado/${conglomeradoActual.id}`
       );
 
       if (responseObs.data.success && responseObs.data.data.length > 0) {
         const obs = responseObs.data.data[0];
         setObservacionExistente(obs);
+        
+        // Verificar si puede editar (no validada por jefe ni por admin)
+        if (obs.validado_por_jefe || obs.validado) {
+          setPuedeEditar(false);
+        }
         
         // Precargar datos de la observación existente
         setFormData({
@@ -131,7 +169,7 @@ function RegistrarObservacion() {
         // No hay observación, usar valores por defecto con el conglomerado
         setFormData(prev => ({
           ...prev,
-          id_conglomerado: conglomeradoEnProceso.id,
+          id_conglomerado: conglomeradoActual.id,
           id_brigada: idBrigada
         }));
       }
@@ -154,31 +192,140 @@ function RegistrarObservacion() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!puedeEditar) {
+      setMensaje('❌ No puedes editar esta observación porque ya fue enviada para revisión');
+      return;
+    }
+
     setLoading(true);
     setMensaje('');
 
     try {
+      // Limpiar datos: convertir strings vacíos a null para campos numéricos
+const datosLimpios = {
+  ...formData,
+  hora_inicio: formData.hora_inicio === '' ? null : formData.hora_inicio,
+  hora_fin: formData.hora_fin === '' ? null : formData.hora_fin,
+  temperatura: formData.temperatura === '' ? null : formData.temperatura,
+  humedad: formData.humedad === '' ? null : formData.humedad,
+  pendiente_grados: formData.pendiente_grados === '' ? null : formData.pendiente_grados,
+  latitud_verificada: formData.latitud_verificada === '' ? null : formData.latitud_verificada,
+  longitud_verificada: formData.longitud_verificada === '' ? null : formData.longitud_verificada,
+  altitud_msnm: formData.altitud_msnm === '' ? null : formData.altitud_msnm,
+  id_subparcela: formData.id_subparcela === '' ? null : formData.id_subparcela
+};
+
       let response;
       
       if (observacionExistente) {
         // Actualizar observación existente
         response = await axios.put(
           `http://localhost:3005/api/observaciones/${observacionExistente.id}`,
-          formData
+          datosLimpios
         );
       } else {
         // Crear nueva observación
-        response = await axios.post('http://localhost:3005/api/observaciones', formData);
+        response = await axios.post('http://localhost:3005/api/observaciones', datosLimpios);
       }
       
       if (response.data.success) {
         setMensaje(`✅ Observación ${observacionExistente ? 'actualizada' : 'registrada'} exitosamente`);
         setTimeout(() => {
-          navigate('/brigadas/mis-conglomerados');
-        }, 2000);
+          setMensaje('');
+        }, 3000);
+        
+        // Recargar datos
+        cargarConglomeradoEnProceso();
       }
     } catch (error) {
       setMensaje('❌ Error al guardar observación: ' + (error.response?.data?.message || error.message));
+      setTimeout(() => setMensaje(''), 8000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubirFotos = async (e) => {
+  const archivos = Array.from(e.target.files);
+  
+  if (!observacionExistente) {
+    setMensaje('⚠️ Primero debes guardar la observación antes de subir fotos');
+    return;
+  }
+
+  if (archivos.length === 0) return;
+
+  setSubiendoFotos(true);
+  const formData = new FormData();
+  
+  archivos.forEach(archivo => {
+    formData.append('fotos', archivo);
+  });
+
+  try {
+    const response = await axios.post(
+      `http://localhost:3005/api/observaciones/${observacionExistente.id}/fotos`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    );
+
+    if (response.data.success) {
+      setMensaje(`✅ ${archivos.length} foto(s) subida(s) exitosamente`);
+      setFotosSubidas(response.data.data.fotos || []);
+      setTimeout(() => setMensaje(''), 3000);
+      // Recargar observación para actualizar fotos
+      cargarConglomeradoEnProceso();
+    }
+  } catch (error) {
+    setMensaje('❌ Error al subir fotos: ' + (error.response?.data?.message || error.message));
+  } finally {
+    setSubiendoFotos(false);
+    e.target.value = ''; // Reset input
+  }
+};
+
+const handleEliminarFoto = async (nombreFoto) => {
+  if (!window.confirm('¿Eliminar esta foto?')) return;
+
+  try {
+    const response = await axios.delete(
+      `http://localhost:3005/api/observaciones/${observacionExistente.id}/fotos/${nombreFoto}`
+    );
+
+    if (response.data.success) {
+      setMensaje('✅ Foto eliminada');
+      setFotosSubidas(response.data.data.fotos || []);
+      setTimeout(() => setMensaje(''), 3000);
+    }
+  } catch (error) {
+    setMensaje('❌ Error al eliminar foto');
+  }
+};
+  const enviarParaRevision = async () => {
+    if (!window.confirm('¿Estás seguro de enviar esta observación para revisión? No podrás editarla después.')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await axios.put(
+        `http://localhost:3005/api/observaciones/${observacionExistente.id}/validar-jefe`,
+        { idJefe: usuario.id }
+      );
+
+      if (response.data.success) {
+        setMensaje('✅ Observación enviada para revisión exitosamente');
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      }
+    } catch (error) {
+      setMensaje('❌ Error al enviar observación: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -202,7 +349,7 @@ function RegistrarObservacion() {
               {mensaje || 'Debes iniciar un conglomerado antes de registrar observaciones.'}
             </p>
             <button
-              onClick={() => navigate('/brigadas/mis-conglomerados')}
+              onClick={() => navigate('/dashboard')}
               className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
             >
               Ir a Mis Conglomerados
@@ -213,19 +360,25 @@ function RegistrarObservacion() {
     );
   }
 
+const esJefeBrigada = usuario.tipo_usuario === 'jefe_brigada';
+  const conglomeradoCompletado = conglomerado?.estado === 'Completado';
+  const puedeEnviar = esJefeBrigada && conglomeradoCompletado && observacionExistente && !observacionExistente.validado_por_jefe;
+
   return (
     <Layout>
       <div className="max-w-5xl mx-auto">
         <div className="bg-white rounded-lg shadow-md p-6">
+          {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <FileText className="w-8 h-8 text-green-600" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">
                   {observacionExistente ? 'Editar' : 'Registrar'} Observación de Campo
+                  {!puedeEditar && <Lock className="inline-block w-6 h-6 ml-2 text-red-500" />}
                 </h1>
                 <p className="text-sm text-gray-600">
-                  <strong>Conglomerado:</strong> {conglomerado.nombre}
+                  <strong>Conglomerado:</strong> {conglomerado.nombre} | <strong>Estado:</strong> {conglomerado.estado}
                 </p>
                 <p className="text-xs text-gray-500">
                   ID: {conglomerado.id} | Ubicación: {conglomerado.ubicacion}
@@ -233,19 +386,29 @@ function RegistrarObservacion() {
               </div>
             </div>
             <button
-              onClick={() => navigate('/brigadas/mis-conglomerados')}
+              onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
             >
               <X className="w-5 h-5" />
-              Cancelar
+              Volver
             </button>
           </div>
 
+          {/* Alerta si no puede editar */}
+          {!puedeEditar && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2 text-red-800">
+                <Lock className="w-5 h-5" />
+                <span className="font-semibold">Esta observación ya fue enviada para revisión y no puede ser modificada.</span>
+              </div>
+            </div>
+          )}
+
           {mensaje && (
             <div className={`mb-4 p-4 rounded-lg ${
-              mensaje.includes('✅') ? 'bg-green-50 text-green-800' : 
-              mensaje.includes('⚠️') ? 'bg-yellow-50 text-yellow-800' :
-              'bg-red-50 text-red-800'
+              mensaje.includes('✅') ? 'bg-green-50 text-green-800 border border-green-200' : 
+              mensaje.includes('⚠️') ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' :
+              'bg-red-50 text-red-800 border border-red-200'
             }`}>
               {mensaje}
             </div>
@@ -270,6 +433,7 @@ function RegistrarObservacion() {
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     required
+                    disabled={!puedeEditar}
                   />
                 </div>
                 <div>
@@ -301,7 +465,6 @@ function RegistrarObservacion() {
               </div>
             </div>
 
-            {/* Resto del formulario continúa igual... */}
             {/* Sección: Condiciones Climáticas */}
             <div className="border-b pb-4">
               <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
@@ -322,6 +485,7 @@ function RegistrarObservacion() {
                     placeholder="Ej: 28.5"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     required
+                    disabled={!puedeEditar}
                   />
                 </div>
                 <div>
@@ -336,6 +500,7 @@ function RegistrarObservacion() {
                     placeholder="Ej: 75"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     required
+                    disabled={!puedeEditar}
                   />
                 </div>
                 <div>
@@ -348,6 +513,7 @@ function RegistrarObservacion() {
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     required
+                    disabled={!puedeEditar}
                   >
                     <option value="soleado">Soleado</option>
                     <option value="parcialmente_nublado">Parcialmente Nublado</option>
@@ -365,6 +531,7 @@ function RegistrarObservacion() {
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     required
+                    disabled={!puedeEditar}
                   >
                     <option value="sin_lluvia">Sin Lluvia</option>
                     <option value="llovizna">Llovizna</option>
@@ -394,6 +561,7 @@ function RegistrarObservacion() {
                     placeholder="Descripción general del sitio, condiciones observadas..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     required
+                    disabled={!puedeEditar}
                   />
                 </div>
                 <div>
@@ -408,6 +576,7 @@ function RegistrarObservacion() {
                     placeholder="Tipos de vegetación, altura del dosel, especies dominantes..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     required
+                    disabled={!puedeEditar}
                   />
                 </div>
                 <div>
@@ -421,6 +590,7 @@ function RegistrarObservacion() {
                     rows="2"
                     placeholder="Aves, mamíferos, reptiles observados..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    disabled={!puedeEditar}
                   />
                 </div>
                 <div>
@@ -434,28 +604,105 @@ function RegistrarObservacion() {
                     rows="2"
                     placeholder="Información proporcionada por la comunidad local..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    disabled={!puedeEditar}
                   />
                 </div>
               </div>
             </div>
+{/* Sección: Fotos */}
+<div className="border-b pb-4">
+  <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+    <Upload className="w-5 h-5" />
+    Fotografías
+  </h2>
+  
+  {/* Input para subir fotos */}
+  {puedeEditar && (
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Agregar fotos (máx. 5MB cada una)
+      </label>
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleSubirFotos}
+        disabled={subiendoFotos || !observacionExistente}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+      />
+      {!observacionExistente && (
+        <p className="text-sm text-yellow-600 mt-1">
+          💡 Guarda primero la observación para poder subir fotos
+        </p>
+      )}
+      {subiendoFotos && (
+        <p className="text-sm text-blue-600 mt-1">Subiendo fotos...</p>
+      )}
+    </div>
+  )}
 
+  {/* Galería de fotos */}
+  {observacionExistente?.fotos && observacionExistente.fotos.length > 0 && (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {observacionExistente.fotos.map((foto, index) => (
+        <div key={index} className="relative group">
+          <img
+            src={`http://localhost:3005/uploads/observaciones/${observacionExistente.id}/${foto}`}
+            alt={`Foto ${index + 1}`}
+            className="w-full h-32 object-cover rounded-lg border"
+          />
+          {puedeEditar && (
+            <button
+              type="button"
+              onClick={() => handleEliminarFoto(foto)}
+              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  )}
+  
+  {(!observacionExistente?.fotos || observacionExistente.fotos.length === 0) && (
+    <p className="text-sm text-gray-500 italic">No se han subido fotos aún</p>
+  )}
+</div>
             {/* Botones */}
-            <div className="flex justify-end gap-4 pt-4">
+            <div className="flex justify-between items-center gap-4 pt-4">
               <button
                 type="button"
-                onClick={() => navigate('/brigadas/mis-conglomerados')}
+                onClick={() => navigate('/dashboard')}
                 className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
-                Cancelar
+                Volver
               </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
-              >
-                <Save className="w-5 h-5" />
-                {loading ? 'Guardando...' : (observacionExistente ? 'Actualizar' : 'Guardar') + ' Observación'}
-              </button>
+
+              <div className="flex gap-4">
+                {puedeEditar && (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                  >
+                    <Save className="w-5 h-5" />
+                    {loading ? 'Guardando...' : (observacionExistente ? 'Actualizar' : 'Guardar')}
+                  </button>
+                )}
+
+                {puedeEnviar && (
+                  <button
+                    type="button"
+                    onClick={enviarParaRevision}
+                    disabled={loading}
+                    className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                  >
+                    <Send className="w-5 h-5" />
+                    Enviar para Revisión
+                  </button>
+                )}
+              </div>
             </div>
           </form>
         </div>

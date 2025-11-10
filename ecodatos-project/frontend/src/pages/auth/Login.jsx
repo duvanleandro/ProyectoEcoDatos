@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useUsuario } from '../../context/UsuarioContext';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -10,6 +12,7 @@ function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { actualizarUsuario } = useUsuario();
 
   const handleChange = (e) => {
     setFormData({
@@ -24,15 +27,25 @@ function Login() {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', formData);
-      
+      const response = await axios.post(`${API_CONFIG.AUTH_SERVICE}${ENDPOINTS.AUTH.LOGIN}`, formData);
+
       if (response.data.success) {
-        // Guardar token y datos del usuario
+        // Guardar token
         localStorage.setItem('token', response.data.data.token);
-        localStorage.setItem('usuario', JSON.stringify(response.data.data.usuario));
-        
-        // Redirigir al dashboard
-        navigate('/dashboard');
+
+        // Actualizar contexto de usuario
+        actualizarUsuario(response.data.data.usuario);
+
+        // Mostrar advertencia si el usuario está inactivo
+        if (response.data.data.usuario.activo === false) {
+          setError('⚠️ Tu cuenta está desactivada. Solo puedes visualizar datos, no realizar modificaciones.');
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 2000);
+        } else {
+          // Redirigir al dashboard
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Error al iniciar sesión');

@@ -338,39 +338,41 @@ class BrigadaService {
    * Obtener estadísticas
    */
   async obtenerEstadisticas() {
-    try {
-      const totalBrigadas = await Brigada.count({ where: { activo: true } });
-      const totalIntegrantes = await Integrante.count();
-      
-      const asignaciones = await sequelize.query(`
-        SELECT estado, COUNT(*) as cantidad
-        FROM brigadaconglomerado
-        GROUP BY estado
-      `, {
-        type: sequelize.QueryTypes.SELECT
-      });
-      
-      const stats = {
-        total_brigadas: totalBrigadas,
-        total_integrantes: totalIntegrantes,
-        asignaciones: {
-          pendientes: 0,
-          en_proceso: 0,
-          completadas: 0
-        }
-      };
-      
-      asignaciones.forEach(a => {
-        if (a.estado === 'Pendiente') stats.asignaciones.pendientes = parseInt(a.cantidad);
-        if (a.estado === 'En_Proceso') stats.asignaciones.en_proceso = parseInt(a.cantidad);
-        if (a.estado === 'Completado') stats.asignaciones.completadas = parseInt(a.cantidad);
-      });
-      
-      return stats;
-    } catch (error) {
-      throw new Error('Error al obtener estadísticas: ' + error.message);
-    }
+  try {
+    const totalBrigadas = await Brigada.count();
+    const brigadasActivas = await Brigada.count({ where: { activo: true } });
+    const totalIntegrantes = await Integrante.count();
+    
+    const asignaciones = await sequelize.query(`
+      SELECT estado, COUNT(*) as cantidad
+      FROM brigadaconglomerado
+      GROUP BY estado
+    `, {
+      type: sequelize.QueryTypes.SELECT
+    });
+    
+    const stats = {
+      total: totalBrigadas,
+      activas: brigadasActivas,
+      total_integrantes: totalIntegrantes,
+      asignaciones: {
+        pendientes: 0,
+        en_proceso: 0,
+        completadas: 0
+      }
+    };
+    
+    asignaciones.forEach(a => {
+      if (a.estado === 'Pendiente') stats.asignaciones.pendientes = parseInt(a.cantidad);
+      if (a.estado === 'En_Proceso') stats.asignaciones.en_proceso = parseInt(a.cantidad);
+      if (a.estado === 'Completado') stats.asignaciones.completadas = parseInt(a.cantidad);
+    });
+    
+    return stats;
+  } catch (error) {
+    throw new Error('Error al obtener estadísticas: ' + error.message);
   }
+}
 
    async obtenerBrigadaPorUsuario(idUsuario) {
     try {
