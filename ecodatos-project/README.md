@@ -347,12 +347,6 @@ Contraseña: admin123
 ./reset-database.sh
 ```
 
-## 👥 Equipo de Desarrollo
-
-- **David Santiago Cortes Agudelo** - Desarrollador Full Stack
-- **Cristian David Mosquera Chavez** - Desarrollador Full Stack
-- **Alejandro Cardona Gomez** - Desarrollador Full Stack
-
 ---
 
 ## 📄 Licencia
