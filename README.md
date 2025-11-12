@@ -838,11 +838,7 @@ El sistema incluye usuarios de prueba:
 ```sql
 -- Admin
 username: admin
-password: admin123
-
--- Jefe de Brigada
-username: jefe1
-password: jefe123
+password: 1234
 ```
 
 Para crear nuevos usuarios, ejecutar:
