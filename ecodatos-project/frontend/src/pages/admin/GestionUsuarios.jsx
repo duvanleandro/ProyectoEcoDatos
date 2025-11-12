@@ -25,6 +25,7 @@ function GestionUsuarios() {
   const [editandoUsuario, setEditandoUsuario] = useState(null);
   const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
   const [usuarioEditar, setUsuarioEditar] = useState({
+    usuario: '',
     nombre_apellidos: '',
     telefono: '',
     email: '',
@@ -74,7 +75,13 @@ function GestionUsuarios() {
         cargarUsuarios();
       }
     } catch (error) {
-      setMensaje('❌ ' + (error.response?.data?.message || error.message));
+      // Manejar errores de validación detallados
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const erroresDetallados = error.response.data.errors.map(err => `• ${err.mensaje}`).join('\n');
+        setMensaje('❌ Errores de validación:\n' + erroresDetallados);
+      } else {
+        setMensaje('❌ ' + (error.response?.data?.message || error.message));
+      }
     } finally {
       setLoading(false);
     }
@@ -100,6 +107,7 @@ function GestionUsuarios() {
   const handleAbrirEditar = (usuario) => {
     setEditandoUsuario(usuario);
     setUsuarioEditar({
+      usuario: usuario.usuario || '',
       nombre_apellidos: usuario.nombre_apellidos || '',
       telefono: usuario.telefono || '',
       email: usuario.email || '',
@@ -115,9 +123,15 @@ function GestionUsuarios() {
     setMensaje('');
 
     try {
+      // Preparar datos a enviar, eliminando contraseña si está vacía
+      const datosActualizacion = { ...usuarioEditar };
+      if (!datosActualizacion.contrasena || datosActualizacion.contrasena.trim() === '') {
+        delete datosActualizacion.contrasena;
+      }
+
       const response = await axios.put(
         `${API_CONFIG.AUTH_SERVICE}${ENDPOINTS.AUTH.USUARIOS}/${editandoUsuario.id}`,
-        usuarioEditar
+        datosActualizacion
       );
 
       if (response.data.success) {
@@ -125,6 +139,7 @@ function GestionUsuarios() {
         setMostrarModalEditar(false);
         setEditandoUsuario(null);
         setUsuarioEditar({
+          usuario: '',
           nombre_apellidos: '',
           telefono: '',
           email: '',
@@ -134,7 +149,13 @@ function GestionUsuarios() {
         cargarUsuarios();
       }
     } catch (error) {
-      setMensaje('❌ ' + (error.response?.data?.message || error.message));
+      // Manejar errores de validación detallados
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const erroresDetallados = error.response.data.errors.map(err => `• ${err.mensaje}`).join('\n');
+        setMensaje('❌ Errores de validación:\n' + erroresDetallados);
+      } else {
+        setMensaje('❌ ' + (error.response?.data?.message || error.message));
+      }
     } finally {
       setLoading(false);
     }
@@ -241,11 +262,11 @@ function GestionUsuarios() {
         {/* Mensaje */}
         {mensaje && (
           <div className={`mb-4 p-3 rounded-lg text-sm ${
-            mensaje.includes('✅') 
+            mensaje.includes('✅')
               ? 'bg-green-50 border border-green-200 text-green-700'
               : 'bg-red-50 border border-red-200 text-red-700'
           }`}>
-            {mensaje}
+            <pre className="whitespace-pre-wrap font-sans">{mensaje}</pre>
           </div>
         )}
 
@@ -300,6 +321,9 @@ function GestionUsuarios() {
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
                     required
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Entre 3 y 50 caracteres. Solo letras, números, guiones y puntos.
+                  </p>
                 </div>
 
                 {/* Contraseña */}
@@ -323,6 +347,9 @@ function GestionUsuarios() {
                       {mostrarContrasena ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Mínimo 6 caracteres. Debe contener mayúscula, minúscula y número.
+                  </p>
                 </div>
 
                 {/* Rol */}
@@ -429,6 +456,23 @@ function GestionUsuarios() {
               </h2>
               <form onSubmit={handleEditarUsuario}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Usuario */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Usuario / Correo *
+                    </label>
+                    <input
+                      type="text"
+                      value={usuarioEditar.usuario}
+                      onChange={(e) => setUsuarioEditar({...usuarioEditar, usuario: e.target.value})}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Entre 3 y 50 caracteres. Solo letras, números, guiones y puntos.
+                    </p>
+                  </div>
+
                   {/* Nombre Completo */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -504,6 +548,9 @@ function GestionUsuarios() {
                         {mostrarContrasena ? <EyeOff size={20} /> : <Eye size={20} />}
                       </button>
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Si desea cambiarla: mínimo 6 caracteres, debe contener mayúscula, minúscula y número.
+                    </p>
                   </div>
                 </div>
 

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Calendar } from 'lucide-react';
+import { MapPin, Calendar, Users, User } from 'lucide-react';
 import axios from '../../config/axios';
 import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function ConglomeradoActivoCard({ usuario }) {
   const navigate = useNavigate();
   const [conglomeradoActivo, setConglomeradoActivo] = useState(null);
+  const [brigada, setBrigada] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,7 +18,7 @@ function ConglomeradoActivoCard({ usuario }) {
     try {
       setLoading(true);
 
-      // Primero obtener la brigada del usuario
+      // Primero obtener la brigada del usuario con sus integrantes
       console.log('🔍 Buscando brigada para usuario:', usuario.id);
       const respBrigada = await axios.get(
         `${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.USUARIO(usuario.id)}`
@@ -26,8 +27,12 @@ function ConglomeradoActivoCard({ usuario }) {
       console.log('📋 Respuesta brigada:', respBrigada.data);
 
       if (respBrigada.data.success && respBrigada.data.data?.id) {
-        const brigadaId = respBrigada.data.data.id;
+        const brigadaData = respBrigada.data.data;
+        const brigadaId = brigadaData.id;
         console.log('✅ Brigada encontrada, ID:', brigadaId);
+
+        // Guardar información de la brigada con sus integrantes
+        setBrigada(brigadaData);
 
         // Obtener conglomerado activo de la brigada
         const respCong = await axios.get(
@@ -62,6 +67,26 @@ function ConglomeradoActivoCard({ usuario }) {
     });
   };
 
+  const getRolNombre = (rol) => {
+    const nombres = {
+      jefe_brigada: 'Jefe de Brigada',
+      botanico: 'Botánico',
+      tecnico_auxiliar: 'Técnico Auxiliar',
+      coinvestigador: 'Coinvestigador'
+    };
+    return nombres[rol] || rol;
+  };
+
+  const getRolColor = (rol) => {
+    switch(rol) {
+      case 'jefe_brigada': return 'bg-blue-100 text-blue-800';
+      case 'botanico': return 'bg-green-100 text-green-800';
+      case 'tecnico_auxiliar': return 'bg-yellow-100 text-yellow-800';
+      case 'coinvestigador': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-6 rounded-lg shadow-lg">
@@ -73,22 +98,23 @@ function ConglomeradoActivoCard({ usuario }) {
     );
   }
 
-  if (!conglomeradoActivo) {
+  // Si no tiene brigada asignada
+  if (!brigada) {
     return (
       <div className="bg-gradient-to-br from-gray-400 to-gray-500 text-white p-6 rounded-lg shadow-lg">
         <div className="flex items-start gap-4">
           <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-            <MapPin size={28} />
+            <Users size={28} />
           </div>
           <div className="flex-1">
             <h3 className="font-bold text-xl mb-2">
-              Sin Conglomerado Activo
+              Sin Brigada Asignada
             </h3>
             <p className="text-sm opacity-90">
-              No tienes ningún conglomerado en proceso en este momento.
+              No estás asignado a ninguna brigada en este momento.
             </p>
             <p className="text-xs opacity-75 mt-2">
-              Espera a que el jefe de brigada inicie el trabajo en un nuevo conglomerado.
+              Contacta al administrador para que te asigne a una brigada.
             </p>
           </div>
         </div>
@@ -96,57 +122,126 @@ function ConglomeradoActivoCard({ usuario }) {
     );
   }
 
+  // Si tiene brigada pero no conglomerado activo
+  if (!conglomeradoActivo) {
+    return (
+      <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-white bg-opacity-20 p-2 rounded-lg">
+              <Users size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg">{brigada.nombre}</h3>
+              <p className="text-blue-100 text-xs">{brigada.zona_designada || 'Sin zona asignada'}</p>
+            </div>
+          </div>
+          {brigada.total_brigadas > 1 && (
+            <span className="bg-white bg-opacity-20 px-2 py-1 rounded text-xs font-semibold">
+              {brigada.total_brigadas} brigadas
+            </span>
+          )}
+        </div>
+
+        {/* Integrantes en grid compacto */}
+        {brigada.integrantes && brigada.integrantes.length > 0 && (
+          <div className="bg-white bg-opacity-10 rounded-lg p-3">
+            <p className="text-blue-100 text-xs mb-2 font-semibold">
+              Equipo ({brigada.integrantes.length})
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {brigada.integrantes.map((integrante) => (
+                <div key={integrante.id} className="bg-white bg-opacity-20 rounded p-2 text-xs">
+                  <p className="font-semibold truncate">{integrante.nombre_apellidos}</p>
+                  <p className="text-blue-100 text-[10px]">{getRolNombre(integrante.rol)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-3 bg-white bg-opacity-10 rounded-lg p-3 text-center">
+          <p className="text-sm opacity-90">Sin conglomerado activo</p>
+          <p className="text-xs opacity-75 mt-1">Espera nueva asignación</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si tiene brigada y conglomerado activo
   return (
-    <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-6 rounded-lg shadow-lg hover:shadow-xl transition">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-start gap-4">
-          <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-            <MapPin size={32} />
+    <div className="space-y-3">
+      {/* Información de la Brigada - Compacta */}
+      <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-white bg-opacity-20 p-2 rounded-lg">
+              <Users size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg">{brigada.nombre}</h3>
+              <p className="text-blue-100 text-xs">{brigada.zona_designada || 'Sin zona'}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-2xl mb-1">
-              🌳 Conglomerado en Proceso
-            </h3>
-            <p className="text-orange-100 text-sm">
-              Tu equipo está trabajando actualmente en este sitio
-            </p>
-          </div>
+          {brigada.total_brigadas > 1 && (
+            <span className="bg-white bg-opacity-20 px-2 py-1 rounded text-xs font-semibold">
+              {brigada.total_brigadas} brigadas
+            </span>
+          )}
         </div>
-        <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-xs font-semibold">
-          EN PROCESO
-        </span>
+
+        {/* Integrantes en grid compacto */}
+        {brigada.integrantes && brigada.integrantes.length > 0 && (
+          <div className="bg-white bg-opacity-10 rounded-lg p-3">
+            <p className="text-blue-100 text-xs mb-2 font-semibold">
+              Equipo ({brigada.integrantes.length})
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {brigada.integrantes.map((integrante) => (
+                <div key={integrante.id} className="bg-white bg-opacity-20 rounded p-2 text-xs">
+                  <p className="font-semibold truncate">{integrante.nombre_apellidos}</p>
+                  <p className="text-blue-100 text-[10px]">{getRolNombre(integrante.rol)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="bg-white bg-opacity-10 rounded-lg p-4 mb-4">
-        <div className="space-y-3">
-          <div>
-            <p className="text-orange-100 text-sm mb-1">Nombre del Conglomerado</p>
-            <p className="font-bold text-lg">{conglomeradoActivo.nombre}</p>
+      {/* Conglomerado Activo - Compacto */}
+      <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-4 rounded-lg shadow-lg hover:shadow-xl transition cursor-pointer"
+           onClick={() => navigate(`/conglomerados/${conglomeradoActivo.id}`)}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-white bg-opacity-20 p-2 rounded-lg">
+              <MapPin size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg">Conglomerado en Proceso</h3>
+              <p className="text-orange-100 text-xs">{conglomeradoActivo.nombre}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-orange-100 text-sm mb-1">Coordenadas</p>
-            <p className="font-mono text-sm">
-              {parseFloat(conglomeradoActivo.latitud).toFixed(4)}°,{' '}
-              {parseFloat(conglomeradoActivo.longitud).toFixed(4)}°
-            </p>
+          <span className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs font-semibold">
+            ACTIVO
+          </span>
+        </div>
+
+        <div className="bg-white bg-opacity-10 rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-orange-100">Coordenadas:</span>
+            <span className="font-mono font-semibold">
+              {parseFloat(conglomeradoActivo.latitud).toFixed(4)}°, {parseFloat(conglomeradoActivo.longitud).toFixed(4)}°
+            </span>
           </div>
-          <div>
-            <p className="text-orange-100 text-sm mb-1">Fecha de Asignación</p>
-            <p className="font-semibold flex items-center gap-1">
-              <Calendar size={14} />
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-orange-100">Asignado:</span>
+            <span className="font-semibold flex items-center gap-1">
+              <Calendar size={12} />
               {formatearFecha(conglomeradoActivo.fecha_asignacion)}
-            </p>
+            </span>
           </div>
         </div>
       </div>
-
-      <button
-        onClick={() => navigate(`/conglomerados/${conglomeradoActivo.id}`)}
-        className="w-full bg-white text-orange-600 hover:bg-orange-50 font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2"
-      >
-        <MapPin size={18} />
-        Ver Detalles
-      </button>
     </div>
   );
 }

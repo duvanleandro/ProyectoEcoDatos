@@ -255,14 +255,21 @@ class BrigadaService {
   }
 
   /**
-   * Obtener todos los integrantes
+   * Obtener todos los integrantes que tengan usuario activo
    */
   async obtenerIntegrantes() {
     try {
-      const integrantes = await Integrante.findAll({
-        order: [['nombre_apellidos', 'ASC']]
+      // Solo traer integrantes que tengan un usuario asociado y que esté activo
+      const integrantes = await sequelize.query(`
+        SELECT i.*
+        FROM integrante i
+        INNER JOIN usuarios u ON i.id = u.id_integrante
+        WHERE u.activo = true
+        ORDER BY i.nombre_apellidos ASC
+      `, {
+        type: sequelize.QueryTypes.SELECT
       });
-      
+
       return integrantes;
     } catch (error) {
       throw new Error('Error al obtener integrantes: ' + error.message);
@@ -376,28 +383,74 @@ class BrigadaService {
 
    async obtenerBrigadaPorUsuario(idUsuario) {
     try {
-      const brigada = await sequelize.query(`
-        SELECT b.*, bi.id_integrante, i.nombre_apellidos, i.rol
+      // Obtener TODAS las brigadas del usuario
+      const brigadas = await sequelize.query(`
+        SELECT DISTINCT b.*
         FROM brigada b
         INNER JOIN brigadaintegrante bi ON b.id = bi.id_brigada
         INNER JOIN integrante i ON bi.id_integrante = i.id
         INNER JOIN usuarios u ON i.id = u.id_integrante
         WHERE u.id = :idUsuario
-        LIMIT 1
+        ORDER BY b.activo DESC, b.id DESC
       `, {
         replacements: { idUsuario },
         type: sequelize.QueryTypes.SELECT
       });
 
-      if (brigada.length === 0) {
+      if (brigadas.length === 0) {
         return null;
       }
 
+      // Buscar la brigada que tiene un conglomerado en proceso
+      let brigadaConConglomerado = null;
+      for (const brigada of brigadas) {
+        const conglomerado = await sequelize.query(`
+          SELECT COUNT(*) as count
+          FROM conglomerado c
+          WHERE c.brigada_id = :brigada_id
+          AND c.estado = 'En_Proceso'
+          LIMIT 1
+        `, {
+          replacements: { brigada_id: brigada.id },
+          type: sequelize.QueryTypes.SELECT
+        });
+
+        if (conglomerado[0].count > 0) {
+          brigadaConConglomerado = brigada;
+          break;
+        }
+      }
+
+      // Si hay una brigada con conglomerado en proceso, usar esa; si no, usar la primera
+      const brigadaSeleccionada = brigadaConConglomerado || brigadas[0];
+
+      // Obtener todos los integrantes de la brigada seleccionada
+      const integrantes = await sequelize.query(`
+        SELECT i.id, i.nombre_apellidos, i.rol, i.especialidad, i.telefono, i.email
+        FROM integrante i
+        INNER JOIN brigadaintegrante bi ON i.id = bi.id_integrante
+        WHERE bi.id_brigada = :id_brigada
+        ORDER BY
+          CASE i.rol
+            WHEN 'jefe_brigada' THEN 1
+            WHEN 'botanico' THEN 2
+            WHEN 'tecnico_auxiliar' THEN 3
+            WHEN 'coinvestigador' THEN 4
+            ELSE 5
+          END,
+          i.nombre_apellidos ASC
+      `, {
+        replacements: { id_brigada: brigadaSeleccionada.id },
+        type: sequelize.QueryTypes.SELECT
+      });
+
       return {
-        id: brigada[0].id,
-        nombre: brigada[0].nombre,
-        zona_designada: brigada[0].zona_designada,
-        activo: brigada[0].activo
+        id: brigadaSeleccionada.id,
+        nombre: brigadaSeleccionada.nombre,
+        zona_designada: brigadaSeleccionada.zona_designada,
+        activo: brigadaSeleccionada.activo,
+        integrantes: integrantes,
+        total_brigadas: brigadas.length
       };
     } catch (error) {
       throw new Error('Error al obtener brigada del usuario: ' + error.message);

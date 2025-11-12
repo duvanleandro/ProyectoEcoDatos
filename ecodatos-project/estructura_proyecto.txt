@@ -1,83 +1,215 @@
 .
-├── backend
-│   ├── gateway
-│   │   ├── package.json
-│   │   ├── package-lock.json
-│   │   ├── src
-│   │   │   ├── config
-│   │   │   ├── middleware
-│   │   │   └── routes
-│   │   └── tests
-│   ├── services
-│   │   ├── auth-service
-│   │   │   ├── package.json
-│   │   │   ├── package-lock.json
-│   │   │   ├── src
-│   │   │   └── tests
-│   │   ├── brigada-service
-│   │   │   ├── package.json
-│   │   │   ├── package-lock.json
-│   │   │   ├── src
-│   │   │   └── tests
-│   │   ├── conglomerado-service
-│   │   │   ├── package.json
-│   │   │   ├── package-lock.json
-│   │   │   ├── src
-│   │   │   └── tests
-│   │   ├── especie-service
-│   │   │   ├── package.json
-│   │   │   ├── package-lock.json
-│   │   │   ├── src
-│   │   │   └── tests
-│   │   └── observacion-service
-│   │       ├── package.json
-│   │       ├── package-lock.json
-│   │       ├── src
-│   │       └── tests
-│   └── shared
-│       ├── database
-│       ├── types
-│       └── utils
+├── CAMBIOS_IMPLEMENTADOS.md
+├── check-database.sh
 ├── create_structure.sh
+├── estructura_proyecto.txt
+├── README.md
+├── reset-database.sh
+├── backend
+│   ├── gateway
+│   │   ├── package.json
+│   │   ├── package-lock.json
+│   │   ├── src
+│   │   │   ├── config
+│   │   │   ├── middleware
+│   │   │   └── routes
+│   │   └── tests
+│   ├── migrations
+│   │   ├── 006_create_logs_auditoria.sql
+│   │   └── add_fecha_inicio_to_conglomerado.sql
+│   ├── services
+│   │   ├── auth-service
+│   │   │   ├── generate-hash.js
+│   │   │   ├── package.json
+│   │   │   ├── package-lock.json
+│   │   │   ├── src
+│   │   │   │   ├── index.js
+│   │   │   │   ├── config
+│   │   │   │   │   └── database.js
+│   │   │   │   ├── controllers
+│   │   │   │   │   └── authController.js
+│   │   │   │   ├── middleware
+│   │   │   │   │   ├── auditLogger.js
+│   │   │   │   │   ├── authMiddleware.js
+│   │   │   │   │   ├── rateLimiter.js
+│   │   │   │   │   └── validationMiddleware.js
+│   │   │   │   ├── models
+│   │   │   │   │   └── Usuario.js
+│   │   │   │   ├── repositories
+│   │   │   │   ├── routes
+│   │   │   │   │   └── authRoutes.js
+│   │   │   │   └── services
+│   │   │   │       └── authService.js
+│   │   │   └── tests
+│   │   ├── brigada-service
+│   │   │   ├── package.json
+│   │   │   ├── package-lock.json
+│   │   │   ├── src
+│   │   │   │   ├── index.js
+│   │   │   │   ├── config
+│   │   │   │   │   └── database.js
+│   │   │   │   ├── controllers
+│   │   │   │   │   └── brigadaController.js
+│   │   │   │   ├── middleware
+│   │   │   │   │   └── authMiddleware.js
+│   │   │   │   ├── models
+│   │   │   │   │   ├── Brigada.js
+│   │   │   │   │   ├── BrigadaConglomerado.js
+│   │   │   │   │   └── Integrante.js
+│   │   │   │   ├── repositories
+│   │   │   │   ├── routes
+│   │   │   │   │   └── brigadaRoutes.js
+│   │   │   │   ├── services
+│   │   │   │   │   ├── brigadaService.js
+│   │   │   │   │   └── brigadaService.js.backup
+│   │   │   │   └── utils
+│   │   │   └── tests
+│   │   ├── conglomerado-service
+│   │   │   ├── package.json
+│   │   │   ├── package-lock.json
+│   │   │   ├── src
+│   │   │   │   ├── index.js
+│   │   │   │   ├── config
+│   │   │   │   │   └── database.js
+│   │   │   │   ├── controllers
+│   │   │   │   │   ├── conglomeradoController.js
+│   │   │   │   │   └── conglomeradoController.js.backup
+│   │   │   │   ├── middleware
+│   │   │   │   │   └── authMiddleware.js
+│   │   │   │   ├── models
+│   │   │   │   │   ├── Conglomerado.js
+│   │   │   │   │   └── Subparcela.js
+│   │   │   │   ├── repositories
+│   │   │   │   ├── routes
+│   │   │   │   │   └── conglomeradoRoutes.js
+│   │   │   │   ├── services
+│   │   │   │   │   ├── conglomeradoService.js
+│   │   │   │   │   ├── conglomeradoService.js.backup
+│   │   │   │   │   └── temp_cambiarEstado.txt
+│   │   │   │   └── utils
+│   │   │   │       └── geoUtils.js
+│   │   │   └── tests
+│   │   ├── especie-service
+│   │   │   ├── package.json
+│   │   │   ├── package-lock.json
+│   │   │   ├── src
+│   │   │   │   ├── index.js
+│   │   │   │   ├── config
+│   │   │   │   │   └── database.js
+│   │   │   │   ├── controllers
+│   │   │   │   │   └── especieController.js
+│   │   │   │   ├── middleware
+│   │   │   │   │   └── authMiddleware.js
+│   │   │   │   ├── models
+│   │   │   │   │   └── Especie.js
+│   │   │   │   ├── repositories
+│   │   │   │   ├── routes
+│   │   │   │   │   └── especieRoutes.js
+│   │   │   │   └── services
+│   │   │   │       └── especieService.js
+│   │   │   └── tests
+│   │   └── observacion-service
+│   │       ├── package.json
+│   │       ├── package-lock.json
+│   │       ├── src
+│   │       │   ├── index.js
+│   │       │   ├── config
+│   │       │   │   └── database.js
+│   │       │   ├── controllers
+│   │       │   │   └── observacionController.js
+│   │       │   ├── middleware
+│   │       │   │   ├── authMiddleware.js
+│   │       │   │   └── upload.js
+│   │       │   ├── models
+│   │       │   │   └── Observacion.js
+│   │       │   ├── repositories
+│   │       │   ├── routes
+│   │       │   │   └── observacionRoutes.js
+│   │       │   └── services
+│   │       │       └── observacionService.js
+│   │       ├── tests
+│   │       └── uploads
+│   │           └── observaciones
+│   └── shared
+│       ├── database
+│       ├── types
+│       └── utils
 ├── docker
 ├── docs
-├── estructura_proyecto.txt
 └── frontend
     ├── eslint.config.js
     ├── index.html
     ├── package.json
     ├── package-lock.json
     ├── postcss.config.js
-    ├── public
-    │   └── vite.svg
     ├── README.md
-    ├── src
-    │   ├── App.css
-    │   ├── App.jsx
-    │   ├── assets
-    │   │   ├── css
-    │   │   ├── images
-    │   │   └── react.svg
-    │   ├── components
-    │   │   ├── admin
-    │   │   ├── auth
-    │   │   ├── brigadas
-    │   │   ├── common
-    │   │   ├── conglomerados
-    │   │   └── maps
-    │   ├── contexts
-    │   ├── hooks
-    │   ├── index.css
-    │   ├── main.jsx
-    │   ├── pages
-    │   │   ├── admin
-    │   │   ├── auth
-    │   │   ├── brigadas
-    │   │   ├── conglomerados
-    │   │   └── dashboard
-    │   ├── services
-    │   └── utils
     ├── tailwind.config.js
-    └── vite.config.js
+    ├── vite.config.js
+    ├── public
+    │   ├── leaflet.html
+    │   └── vite.svg
+    └── src
+        ├── App.css
+        ├── App.jsx
+        ├── index.css
+        ├── main.jsx
+        ├── assets
+        │   ├── react.svg
+        │   ├── css
+        │   └── images
+        ├── components
+        │   ├── admin
+        │   ├── auth
+        │   ├── brigadas
+        │   ├── common
+        │   │   ├── BannerUsuarioInactivo.jsx
+        │   │   └── Layout.jsx
+        │   ├── conglomerados
+        │   ├── dashboard
+        │   │   └── ConglomeradoActivoCard.jsx
+        │   └── maps
+        ├── config
+        │   ├── api.js
+        │   └── axios.js
+        ├── context
+        │   └── UsuarioContext.jsx
+        ├── contexts
+        ├── hooks
+        │   ├── useAsync.js
+        │   ├── useFormValidation.js
+        │   ├── usePagination.js
+        │   └── useUsuarioActivo.js
+        ├── pages
+        │   ├── admin
+        │   │   └── GestionUsuarios.jsx
+        │   ├── auth
+        │   │   └── Login.jsx
+        │   ├── brigadas
+        │   │   ├── AsignarBrigada.jsx
+        │   │   ├── GestionBrigadas.jsx
+        │   │   └── MisConglomerados.jsx
+        │   ├── conglomerados
+        │   │   ├── DetalleConglomerado.jsx
+        │   │   ├── GenerarConglomerados.jsx
+        │   │   ├── GenerarConglomerados.jsx.backup
+        │   │   └── ListaConglomerados.jsx
+        │   ├── dashboard
+        │   │   └── Dashboard.jsx
+        │   ├── especies
+        │   │   ├── ConsultaEspecies.jsx
+        │   │   └── GestionEspecies.jsx
+        │   ├── observaciones
+        │   │   ├── DetalleObservacion.jsx
+        │   │   ├── EditarObservacionAdmin.jsx
+        │   │   ├── ListaObservaciones.jsx
+        │   │   └── RegistrarObservacion.jsx
+        │   ├── perfil
+        │   │   └── MiPerfil.jsx
+        │   └── reportes
+        │       ├── IndicadoresReportes.jsx
+        │       └── IndicadoresReportes.jsx.backup
+        ├── services
+        │   └── observacionService.js
+        └── utils
 
-53 directories, 28 files
+101 directories, 113 files

@@ -246,7 +246,16 @@ async login(usuario, contrasena) {
       throw new Error('Usuario no encontrado');
     }
 
-    const { nombre_apellidos, telefono, email, especialidad, contrasena } = usuarioData;
+    const { usuario: nuevoUsuario, nombre_apellidos, telefono, email, especialidad, contrasena } = usuarioData;
+
+    // Si se quiere cambiar el nombre de usuario, verificar que no exista otro con ese nombre
+    if (nuevoUsuario && nuevoUsuario !== usuario.usuario) {
+      const existeUsuario = await Usuario.findOne({ where: { usuario: nuevoUsuario } });
+      if (existeUsuario) {
+        throw new Error('El nombre de usuario ya existe');
+      }
+      usuario.usuario = nuevoUsuario;
+    }
 
     // Si el usuario tiene integrante asociado, actualizar sus datos
     if (usuario.id_integrante) {

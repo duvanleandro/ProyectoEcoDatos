@@ -1,0 +1,20 @@
+{
+  "name": "ecodatos-project",
+  "version": "1.0.0",
+  "description": "Sistema de gestión de conglomerados forestales",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"auth,brigada,conglomerado,especie,observacion,frontend\" -c \"cyan,magenta,yellow,green,blue,red\" \"npm run dev:auth\" \"npm run dev:brigada\" \"npm run dev:conglomerado\" \"npm run dev:especie\" \"npm run dev:observacion\" \"npm run dev:frontend\"",
+    "dev:auth": "cd backend/services/auth-service && npm run dev",
+    "dev:brigada": "cd backend/services/brigada-service && npm run dev",
+    "dev:conglomerado": "cd backend/services/conglomerado-service && npm run dev",
+    "dev:especie": "cd backend/services/especie-service && npm run dev",
+    "dev:observacion": "cd backend/services/observacion-service && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "concurrently -n \"auth,brigada,conglomerado,especie,observacion\" -c \"cyan,magenta,yellow,green,blue\" \"npm run dev:auth\" \"npm run dev:brigada\" \"npm run dev:conglomerado\" \"npm run dev:especie\" \"npm run dev:observacion\"",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend/services/auth-service && npm install && cd ../brigada-service && npm install && cd ../conglomerado-service && npm install && cd ../especie-service && npm install && cd ../observacion-service && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
