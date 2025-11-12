@@ -7,9 +7,6 @@ Sistema web integral para la gestión del Inventario Forestal Nacional de Colomb
 **Integrantes:**
 - Duvan Leandro Pedraza Gonzalez
 - Stefany Dayana Medina Galvis
-- Juan Daniel Quinchanegua
-- Jonathan Arley Monsalve Salazar
-- Duvan Ramirez Molina
 
 **Grupo:** 5A
 **Institución:** Universidad de Investigación y Desarrollo
@@ -54,23 +51,23 @@ El sistema está construido utilizando una **arquitectura de microservicios** qu
 ┌─────────────────────────────────────────────────────────────┐
 │                  CAPA DE MICROSERVICIOS                     │
 │                                                             │
-│  ┌────────────────┐  ┌──────────────────┐  ┌─────────────┐│
-│  │  Auth Service  │  │  Conglomerado    │  │   Brigada   ││
-│  │  Puerto 3001   │  │  Service         │  │   Service   ││
-│  │                │  │  Puerto 3002     │  │  Puerto 3003││
-│  │ • Usuarios     │  │ • Conglomerados  │  │ • Brigadas  ││
-│  │ • JWT          │  │ • Subparcelas    │  │ • Integrantes││
-│  │ • Auditoría    │  │ • Estados        │  │ • Asignación││
-│  └────────────────┘  └──────────────────┘  └─────────────┘│
+│  ┌────────────────┐  ┌──────────────────┐  ┌─────────────┐  │
+│  │  Auth Service  │  │  Conglomerado    │  │   Brigada   │  │
+│  │  Puerto 3001   │  │  Service         │  │   Service   │  │
+│  │                │  │  Puerto 3002     │  │  Puerto 3003│  │
+│  │ • Usuarios     │  │ • Conglomerados  │  │ • Brigadas  │  │
+│  │ • JWT          │  │ • Subparcelas    │  │ • Integrantes│ │
+│  │ • Auditoría    │  │ • Estados        │  │ • Asignación││ |
+│  └────────────────┘  └──────────────────┘  └─────────────┘│ |
 │                                                             │
-│  ┌────────────────┐  ┌──────────────────┐                  │
-│  │ Especie Service│  │ Observacion      │                  │
-│  │  Puerto 3004   │  │ Service          │                  │
-│  │                │  │  Puerto 3005     │                  │
-│  │ • Especies     │  │ • Observaciones  │                  │
-│  │ • Taxonomía    │  │ • Validación     │                  │
-│  │ • Catálogo     │  │ • Fotos (Multer) │                  │
-│  └────────────────┘  └──────────────────┘                  │
+│  ┌────────────────┐  ┌──────────────────┐                   │
+│  │ Especie Service│  │ Observacion      │                   │
+│  │  Puerto 3004   │  │ Service          │                   │
+│  │                │  │  Puerto 3005     │                   │
+│  │ • Especies     │  │ • Observaciones  │                   │
+│  │ • Taxonomía    │  │ • Validación     │                   │
+│  │ • Catálogo     │  │ • Fotos (Multer) │                   │
+│  └────────────────┘  └──────────────────┘                   │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
