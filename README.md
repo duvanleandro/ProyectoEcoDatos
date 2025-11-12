@@ -1145,9 +1145,6 @@ npm test
 ### Desarrolladores
 - **Duvan Leandro Pedraza Gonzalez** - Full Stack Developer
 - **Stefany Dayana Medina Galvis** - Full Stack Developer
-- **Juan Daniel Quinchanegua** - Backend Developer
-- **Jonathan Arley Monsalve Salazar** - Frontend Developer
-- **Duvan Ramirez Molina** - Database & Backend Developer
 
 ### Información del Proyecto
 - **Grupo:** 5A
@@ -1157,7 +1154,7 @@ npm test
 - **Período:** 2025-1
 - **Tipo:** Proyecto Integrador
 
-**Repositorio:** [@duvanleandro/ProyectoIntegrador](https://github.com/duvanleandro/ProyectoIntegrador)
+**Repositorio:** [@duvanleandro/ProyectoIntegrador](https://github.com/duvanleandro/ProyectoEcoDatos)
 
 ---
 
