@@ -213,11 +213,18 @@ const response = await axios.get('http://localhost:3001/api/auth/perfil', {
 
 ```
 ProyectoIntegrador/
-├── README.md                           # Este archivo
+├── README.md                           # Este archivo - Documentación general
 ├── ecodatos-project/
-│   ├── README.md                       # Documentación específica del proyecto
-│   ├── CAMBIOS_IMPLEMENTADOS.md        # Registro detallado de cambios
+│   ├── README.md                       # Documentación del proyecto
+│   ├── CHANGELOG.md                    # Registro de cambios y versiones
 │   ├── .gitignore                      # Archivos ignorados por git
+│   ├── package.json                    # Scripts npm del proyecto
+│   │
+│   ├── start-dev.sh                    # ✨ Script para iniciar todos los servicios
+│   ├── stop-dev.sh                     # ✨ Script para detener servicios
+│   ├── check-database.sh               # Script de verificación de BD
+│   ├── reset-database.sh               # Script de reset de BD
+│   ├── create_structure.sh             # Script para generar estructura
 │   │
 │   ├── frontend/                       # Aplicación React (Puerto 5173)
 │   │   ├── .env.example                # Plantilla de variables de entorno
@@ -271,8 +278,11 @@ ProyectoIntegrador/
 │   │   │   │   │   └── EditarObservacionAdmin.jsx  # Edición por admin
 │   │   │   │   │
 │   │   │   │   ├── reportes/
-│   │   │   │   │   ├── IndicadoresReportes.jsx
-│   │   │   │   │   └── IndicadoresReportes.jsx.backup
+│   │   │   │   │   └── IndicadoresReportes.jsx
+│   │   │   │   │
+│   │   │   │   ├── especies/
+│   │   │   │   │   ├── ConsultaEspecies.jsx
+│   │   │   │   │   └── GestionEspecies.jsx
 │   │   │   │   │
 │   │   │   │   └── dashboard/
 │   │   │   │       └── Dashboard.jsx
@@ -388,8 +398,12 @@ ProyectoIntegrador/
 │   │           │   └── index.js
 │   │           └── package.json
 │   │
-│   ├── check-database.sh               # Script de verificación de BD
-│   └── reset-database.sh               # Script de reset de BD
+│   ├── shared/                         # Código compartido entre servicios
+│   │   ├── database/                   # Configuración de BD compartida
+│   │   ├── types/                      # Tipos compartidos
+│   │   └── utils/                      # Utilidades compartidas
+│   │
+│   └── docker/                         # Configuración Docker (opcional)
 ```
 
 ### 📂 Archivos Nuevos Agregados
@@ -421,8 +435,9 @@ ProyectoIntegrador/
 - ✅ `.env.example` - Plantilla de variables de entorno
 
 **Documentación:**
-- ✅ `CAMBIOS_IMPLEMENTADOS.md` - Registro detallado de todos los cambios
-- ✅ `README.md` (proyecto) - Documentación específica
+- ✅ `README.md` (principal) - Documentación general del proyecto
+- ✅ `CHANGELOG.md` - Registro de cambios y versiones
+- ✅ `frontend/README.md` - Documentación del frontend
 - ✅ `.gitignore` actualizado
 
 ---
@@ -792,30 +807,18 @@ cd frontend
 npm run dev
 ```
 
-**Opción 2: Script de inicio automático**
+**Opción 2: Script de inicio automático (Recomendado)**
 
 ```bash
-# Crear un script start-all.sh en la raíz del proyecto
-#!/bin/bash
-
-echo "🚀 Iniciando todos los servicios..."
-
-# Iniciar servicios en background
-cd backend/services/auth-service && npm start &
-cd backend/services/conglomerado-service && npm start &
-cd backend/services/brigada-service && npm start &
-cd backend/services/especie-service && npm start &
-cd backend/services/observacion-service && npm start &
-cd frontend && npm run dev &
-
-echo "✅ Todos los servicios iniciados"
-echo "📊 Frontend: http://localhost:5173"
-echo "🔐 Auth: http://localhost:3001"
-echo "📍 Conglomerados: http://localhost:3002"
-echo "👥 Brigadas: http://localhost:3003"
-echo "🌿 Especies: http://localhost:3004"
-echo "📝 Observaciones: http://localhost:3005"
+# Desde el directorio ecodatos-project
+./start-dev.sh
 ```
+
+El proyecto incluye scripts de automatización:
+- **`start-dev.sh`** - Inicia todos los servicios automáticamente en modo desarrollo
+- **`stop-dev.sh`** - Detiene todos los servicios activos
+- **`check-database.sh`** - Verifica el estado de la base de datos
+- **`reset-database.sh`** - Resetea la base de datos (⚠️ elimina datos)
 
 ### 7. Acceder al Sistema
 
@@ -1169,9 +1172,15 @@ Para reportar bugs, solicitar features o hacer preguntas:
 - **GitHub Issues:** https://github.com/duvanleandro/ProyectoIntegrador/issues
 
 ### Documentación Adicional
-- **Manual de Usuario:** Ver `docs/manual_usuario.md` (próximamente)
-- **Documentación Técnica:** Ver `docs/documentacion_tecnica.md` (próximamente)
-- **Cambios Implementados:** Ver `ecodatos-project/CAMBIOS_IMPLEMENTADOS.md`
+
+**Manuales Principales:**
+- **📘 [Manual de Usuario](MANUAL_USUARIO.md)** - Guía completa para usuarios finales (admin, coordinadores, jefes de brigada, integrantes)
+- **🔧 [Manual Técnico](MANUAL_TECNICO.md)** - Documentación técnica para desarrolladores y administradores de sistemas
+
+**Documentación del Código:**
+- **Documentación del Proyecto:** Ver `ecodatos-project/README.md`
+- **Registro de Cambios:** Ver `ecodatos-project/CHANGELOG.md`
+- **Documentación del Frontend:** Ver `ecodatos-project/frontend/README.md`
 
 ---
 
@@ -1217,6 +1226,6 @@ Este proyecto es software educativo desarrollado como **Proyecto Integrador de Q
 
 ---
 
-**Última actualización:** Noviembre 10, 2025
-**Versión:** 2.0.0
+**Última actualización:** Noviembre 12, 2024
+**Versión:** 1.0.0
 **Estado:** En desarrollo activo

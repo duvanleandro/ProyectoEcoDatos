@@ -11,7 +11,10 @@ Sistema integral para la recolección, gestión y análisis de datos ecológicos
 - [Instalación](#instalación)
 - [Configuración](#configuración)
 - [Uso](#uso)
-- [Equipo de Desarrollo](#equipo-de-desarrollo)
+- [Flujo de Trabajo](#flujo-de-trabajo)
+- [Seguridad](#seguridad)
+- [Scripts Disponibles](#scripts-disponibles)
+- [Documentación Adicional](#documentación-adicional)
 
 ## ✨ Características
 
@@ -66,16 +69,40 @@ El proyecto sigue una arquitectura de microservicios:
 ```
 ecodatos-project/
 ├── backend/
-│   ├── gateway/                    # API Gateway (Puerto 3000)
-│   ├── services/
+│   ├── gateway/                    # API Gateway (Puerto 3000) - Opcional
+│   ├── services/                   # Microservicios
 │   │   ├── auth-service/           # Autenticación (Puerto 3001)
-│   │   ├── conglomerado-service/   # Conglomerados (Puerto 3002)
 │   │   ├── brigada-service/        # Brigadas (Puerto 3003)
+│   │   ├── conglomerado-service/   # Conglomerados (Puerto 3002)
 │   │   ├── especie-service/        # Especies (Puerto 3004)
 │   │   └── observacion-service/    # Observaciones (Puerto 3005)
-│   └── migrations/                 # Scripts de migración SQL
-├── frontend/                       # React + Vite (Puerto 5173)
-└── database/                       # PostgreSQL (Puerto 5432)
+│   ├── migrations/                 # Scripts SQL de migración
+│   └── shared/                     # Código compartido entre servicios
+│       ├── database/               # Configuración de BD compartida
+│       ├── types/                  # Tipos TypeScript/JS compartidos
+│       └── utils/                  # Utilidades compartidas
+├── frontend/                       # Aplicación React + Vite (Puerto 5173)
+│   ├── src/                        # Código fuente
+│   │   ├── components/             # Componentes React
+│   │   ├── pages/                  # Páginas/Vistas
+│   │   ├── config/                 # Configuración (API, Axios)
+│   │   ├── context/                # Context API
+│   │   ├── hooks/                  # Hooks personalizados
+│   │   ├── services/               # Servicios API
+│   │   └── utils/                  # Utilidades
+│   ├── public/                     # Archivos estáticos
+│   └── package.json                # Dependencias frontend
+├── docker/                         # Configuración Docker (opcional)
+├── CHANGELOG.md                    # Registro de cambios
+├── README.md                       # Este archivo
+├── package.json                    # Scripts npm del proyecto
+├── start-dev.sh                    # Script para iniciar servicios
+├── stop-dev.sh                     # Script para detener servicios
+├── check-database.sh               # Script para verificar BD
+├── reset-database.sh               # Script para resetear BD
+└── create_structure.sh             # Script para generar estructura
+
+Base de Datos: PostgreSQL (Puerto 5432) - Instalado localmente
 ```
 
 ### Servicios Backend
@@ -257,37 +284,50 @@ VITE_OBSERVACION_SERVICE=http://localhost:3005
 
 ## 🎯 Uso
 
-### Iniciar Servicios Backend
+### Opción 1: Iniciar todos los servicios con un comando (Recomendado)
 
 ```bash
-# Terminal 1 - Gateway
-cd backend/gateway
-npm start
-
-# Terminal 2 - Auth Service
-cd backend/services/auth-service
-npm start
-
-# Terminal 3 - Brigada Service
-cd backend/services/brigada-service
-npm start
-
-# Terminal 4 - Conglomerado Service
-cd backend/services/conglomerado-service
-npm start
-
-# Terminal 5 - Especie Service
-cd backend/services/especie-service
-npm start
-
-# Terminal 6 - Observacion Service
-cd backend/services/observacion-service
-npm start
+# Desde el directorio raíz del proyecto
+./start-dev.sh
 ```
 
-### Iniciar Frontend
+Este script iniciará automáticamente:
+- Todos los microservicios del backend
+- El frontend de React
+
+La aplicación estará disponible en `http://localhost:5173`
+
+Para detener todos los servicios:
+```bash
+./stop-dev.sh
+```
+
+### Opción 2: Iniciar servicios manualmente
+
+Si prefieres iniciar los servicios uno por uno:
 
 ```bash
+# Terminal 1 - Auth Service
+cd backend/services/auth-service
+npm run dev
+
+# Terminal 2 - Brigada Service
+cd backend/services/brigada-service
+npm run dev
+
+# Terminal 3 - Conglomerado Service
+cd backend/services/conglomerado-service
+npm run dev
+
+# Terminal 4 - Especie Service
+cd backend/services/especie-service
+npm run dev
+
+# Terminal 5 - Observacion Service
+cd backend/services/observacion-service
+npm run dev
+
+# Terminal 6 - Frontend
 cd frontend
 npm run dev
 ```
@@ -337,15 +377,52 @@ Contraseña: admin123
 - Comunicación segura entre microservicios
 - Validación de llamadas internas con headers especiales
 
-## 📝 Scripts de Base de Datos
+## 📜 Scripts Disponibles
 
+El proyecto incluye varios scripts útiles para el desarrollo y mantenimiento:
+
+### Scripts de Desarrollo
+
+**start-dev.sh** - Inicia todos los servicios
 ```bash
-# Verificar estado de la base de datos
-./check-database.sh
+./start-dev.sh
+```
+Inicia automáticamente todos los microservicios del backend y el frontend.
 
-# Resetear base de datos (¡CUIDADO! Elimina todos los datos)
+**stop-dev.sh** - Detiene todos los servicios
+```bash
+./stop-dev.sh
+```
+Detiene todos los procesos de Node.js y Vite iniciados.
+
+### Scripts de Base de Datos
+
+**check-database.sh** - Verifica el estado de la base de datos
+```bash
+./check-database.sh
+```
+Muestra información sobre tablas, registros y el estado general de la BD.
+
+**reset-database.sh** - Resetea la base de datos
+```bash
 ./reset-database.sh
 ```
+⚠️ **CUIDADO**: Elimina todos los datos y reinicia la base de datos desde cero.
+
+### Scripts de Estructura
+
+**create_structure.sh** - Genera la estructura del proyecto
+```bash
+./create_structure.sh
+```
+Crea un archivo de texto con la estructura completa del proyecto.
+
+---
+
+## 📚 Documentación Adicional
+
+- **[CHANGELOG.md](CHANGELOG.md)** - Registro de cambios y nuevas características
+- **[frontend/README.md](frontend/README.md)** - Documentación específica del frontend
 
 ---
 
