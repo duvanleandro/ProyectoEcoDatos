@@ -838,11 +838,7 @@ El sistema incluye usuarios de prueba:
 ```sql
 -- Admin
 username: admin
-password: admin123
-
--- Jefe de Brigada
-username: jefe1
-password: jefe123
+password: 1234
 ```
 
 Para crear nuevos usuarios, ejecutar:
@@ -1149,9 +1145,6 @@ npm test
 ### Desarrolladores
 - **Duvan Leandro Pedraza Gonzalez** - Full Stack Developer
 - **Stefany Dayana Medina Galvis** - Full Stack Developer
-- **Juan Daniel Quinchanegua** - Backend Developer
-- **Jonathan Arley Monsalve Salazar** - Frontend Developer
-- **Duvan Ramirez Molina** - Database & Backend Developer
 
 ### Información del Proyecto
 - **Grupo:** 5A
@@ -1161,7 +1154,7 @@ npm test
 - **Período:** 2025-1
 - **Tipo:** Proyecto Integrador
 
-**Repositorio:** [@duvanleandro/ProyectoIntegrador](https://github.com/duvanleandro/ProyectoIntegrador)
+**Repositorio:** [@duvanleandro/ProyectoIntegrador](https://github.com/duvanleandro/ProyectoEcoDatos)
 
 ---
 
