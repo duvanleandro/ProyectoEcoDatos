@@ -272,7 +272,7 @@ class BrigadaController {
     try {
       const { idUsuario } = req.params;
       const brigada = await brigadaService.obtenerBrigadaPorUsuario(idUsuario);
-      
+
       if (!brigada) {
         return res.status(404).json({
           success: false,
@@ -283,6 +283,26 @@ class BrigadaController {
       res.status(200).json({
         success: true,
         data: brigada
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/brigadas/usuario/:idUsuario/todas
+   */
+  async obtenerTodasPorUsuario(req, res) {
+    try {
+      const { idUsuario } = req.params;
+      const brigadas = await brigadaService.obtenerTodasBrigadasPorUsuario(idUsuario);
+
+      res.status(200).json({
+        success: true,
+        data: brigadas
       });
     } catch (error) {
       res.status(500).json({

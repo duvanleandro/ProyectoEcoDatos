@@ -33,7 +33,6 @@ class AuthService {
 
 async login(usuario, contrasena) {
   // Buscar usuario con su información de integrante usando SQL raw
-  // NOTA: Permitimos login de usuarios inactivos (modo solo lectura)
   const [usuarioEncontrado] = await sequelize.query(`
     SELECT u.*, i.nombre_apellidos, i.email, i.telefono
     FROM usuarios u
@@ -44,11 +43,16 @@ async login(usuario, contrasena) {
     replacements: { usuario },
     type: sequelize.QueryTypes.SELECT
   });
-  
+
   if (!usuarioEncontrado) {
     throw new Error('Credenciales inválidas');
   }
-  
+
+  // Verificar si el usuario está activo
+  if (!usuarioEncontrado.activo) {
+    throw new Error('Tu cuenta está inactiva. Contacta al administrador para reactivarla.');
+  }
+
   // Verificar contraseña
   const passwordValida = await bcrypt.compare(contrasena, usuarioEncontrado.contraseña);
   if (!passwordValida) {

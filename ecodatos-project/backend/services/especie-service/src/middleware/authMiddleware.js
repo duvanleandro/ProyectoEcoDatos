@@ -97,9 +97,24 @@ const esJefeBrigada = (req, res, next) => {
   next();
 };
 
+/**
+ * Middleware para verificar que el usuario pueda gestionar especies
+ * (admin, coordinador, laboratorio, botanico)
+ */
+const puedeGestionarEspecies = (req, res, next) => {
+  if (!['admin', 'coordinador', 'laboratorio', 'botanico'].includes(req.usuario.tipo_usuario)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Acceso denegado. Se requieren permisos de administrador, coordinador, laboratorio o botánico.'
+    });
+  }
+  next();
+};
+
 module.exports = {
   verificarToken,
   esAdmin,
   esCoordinadorOAdmin,
-  esJefeBrigada
+  esJefeBrigada,
+  puedeGestionarEspecies
 };

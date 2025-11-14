@@ -39,7 +39,11 @@ function GestionBrigadas() {
     try {
       const response = await axios.get('http://localhost:3003/api/brigadas/integrantes');
       if (response.data.success) {
-        setIntegrantes(response.data.data);
+        // Filtrar solo roles de brigada (excluir laboratorio, admin, coordinador)
+        const integrantesBrigada = response.data.data.filter(integrante =>
+          ['jefe_brigada', 'botanico', 'tecnico_auxiliar', 'coinvestigador'].includes(integrante.rol)
+        );
+        setIntegrantes(integrantesBrigada);
       }
     } catch (error) {
       console.error('Error al cargar integrantes:', error);

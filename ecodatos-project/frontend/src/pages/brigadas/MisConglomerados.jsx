@@ -17,19 +17,37 @@ function MisConglomerados() {
   const cargarMisConglomerados = async () => {
     try {
       setLoading(true);
+
+      // 1. Obtener TODAS las brigadas del usuario
+      const respBrigadas = await axios.get(`http://localhost:3003/api/brigadas/usuario/${usuario.id}/todas`);
+
+      if (!respBrigadas.data.success || respBrigadas.data.data.length === 0) {
+        console.log('⚠️ Usuario no tiene brigadas asignadas');
+        setConglomerados([]);
+        setLoading(false);
+        return;
+      }
+
+      const brigadasDelUsuario = respBrigadas.data.data;
+      const brigadasIds = brigadasDelUsuario.map(b => b.id);
+      console.log('📋 Brigadas del usuario:', brigadasIds);
+
+      // 2. Obtener todos los conglomerados
       const response = await axios.get('http://localhost:3002/api/conglomerados');
-      
+
       if (response.data.success) {
-        // Filtrar TODOS los conglomerados que tienen brigada asignada
-        const conglomeradosAsignados = response.data.data.filter(c => 
-          c.brigada_nombre && ['Asignado', 'En_Proceso', 'Completado'].includes(c.estado)
+        // 3. Filtrar solo los conglomerados de las brigadas del usuario
+        const conglomeradosAsignados = response.data.data.filter(c =>
+          c.brigada_id &&
+          brigadasIds.includes(c.brigada_id) &&
+          ['Asignado', 'En_Proceso', 'Completado'].includes(c.estado)
         );
-        
-        console.log('Conglomerados asignados:', conglomeradosAsignados);
+
+        console.log('🌳 Conglomerados de mis brigadas:', conglomeradosAsignados);
         setConglomerados(conglomeradosAsignados);
       }
     } catch (error) {
-      console.error('Error al cargar conglomerados:', error);
+      console.error('❌ Error al cargar conglomerados:', error);
     } finally {
       setLoading(false);
     }

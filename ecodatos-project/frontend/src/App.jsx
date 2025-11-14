@@ -17,6 +17,7 @@ import DetalleObservacion from './pages/observaciones/DetalleObservacion';
 import EditarObservacionAdmin from './pages/observaciones/EditarObservacionAdmin';
 import IndicadoresReportes from './pages/reportes/IndicadoresReportes';
 import MiPerfil from './pages/perfil/MiPerfil';
+import BusquedaEspecies from './pages/laboratorio/BusquedaEspecies';
 
 
 // Componente para proteger rutas (requiere autenticación)
@@ -179,8 +180,10 @@ function App() {
   } 
 />
 
+        {/* Rutas de Laboratorio */}
+        <Route path="/laboratorio/busqueda-especies" element={<ProtectedRoute><BusquedaEspecies /></ProtectedRoute>} />
+
         {/* Rutas pendientes */}
-        <Route path="/laboratorio/clasificacion" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/reportes" element={<ProtectedRoute><IndicadoresReportes /></ProtectedRoute>} />
 
         {/* Perfil de Usuario */}

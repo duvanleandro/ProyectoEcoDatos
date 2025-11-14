@@ -1,61 +1,72 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Calendar, Users, User } from 'lucide-react';
+import { MapPin, Calendar, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from '../../config/axios';
 import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function ConglomeradoActivoCard({ usuario }) {
   const navigate = useNavigate();
-  const [conglomeradoActivo, setConglomeradoActivo] = useState(null);
-  const [brigada, setBrigada] = useState(null);
+  const [brigadas, setBrigadas] = useState([]);
+  const [brigadaActualIndex, setBrigadaActualIndex] = useState(0);
+  const [conglomeradosActivos, setConglomeradosActivos] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    cargarConglomeradoActivo();
+    cargarBrigadasYConglomerados();
   }, []);
 
-  const cargarConglomeradoActivo = async () => {
+  const cargarBrigadasYConglomerados = async () => {
     try {
       setLoading(true);
 
-      // Primero obtener la brigada del usuario con sus integrantes
-      console.log('🔍 Buscando brigada para usuario:', usuario.id);
-      const respBrigada = await axios.get(
-        `${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.USUARIO(usuario.id)}`
+      // Obtener TODAS las brigadas del usuario
+      console.log('🔍 Buscando todas las brigadas para usuario:', usuario.id);
+      const respBrigadas = await axios.get(
+        `${API_CONFIG.BRIGADA_SERVICE}/api/brigadas/usuario/${usuario.id}/todas`
       );
 
-      console.log('📋 Respuesta brigada:', respBrigada.data);
+      console.log('📋 Respuesta brigadas:', respBrigadas.data);
 
-      if (respBrigada.data.success && respBrigada.data.data?.id) {
-        const brigadaData = respBrigada.data.data;
-        const brigadaId = brigadaData.id;
-        console.log('✅ Brigada encontrada, ID:', brigadaId);
+      if (respBrigadas.data.success && respBrigadas.data.data?.length > 0) {
+        const brigadasData = respBrigadas.data.data;
+        setBrigadas(brigadasData);
+        console.log(`✅ ${brigadasData.length} brigada(s) encontrada(s)`);
 
-        // Guardar información de la brigada con sus integrantes
-        setBrigada(brigadaData);
+        // Para cada brigada, obtener su conglomerado activo
+        const conglomeradosMap = {};
+        for (const brigada of brigadasData) {
+          try {
+            const respCong = await axios.get(
+              `${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BRIGADA_ACTIVO(brigada.id)}`
+            );
 
-        // Obtener conglomerado activo de la brigada
-        const respCong = await axios.get(
-          `${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BRIGADA_ACTIVO(brigadaId)}`
-        );
-
-        console.log('🌳 Respuesta conglomerado:', respCong.data);
-
-        if (respCong.data.success && respCong.data.data) {
-          console.log('✅ Conglomerado activo encontrado:', respCong.data.data);
-          setConglomeradoActivo(respCong.data.data);
-        } else {
-          console.log('⚠️ No hay conglomerado activo o datos vacíos');
+            if (respCong.data.success && respCong.data.data) {
+              conglomeradosMap[brigada.id] = respCong.data.data;
+              console.log(`✅ Conglomerado activo encontrado para brigada ${brigada.id}`);
+            }
+          } catch (error) {
+            console.log(`⚠️ No hay conglomerado activo para brigada ${brigada.id}`);
+          }
         }
+
+        setConglomeradosActivos(conglomeradosMap);
       } else {
-        console.log('⚠️ Usuario no tiene brigada asignada');
+        console.log('⚠️ Usuario no tiene brigadas asignadas');
       }
     } catch (error) {
-      console.error('❌ Error al cargar conglomerado activo:', error);
+      console.error('❌ Error al cargar brigadas y conglomerados:', error);
       console.error('Detalles del error:', error.response?.data);
     } finally {
       setLoading(false);
     }
+  };
+
+  const siguienteBrigada = () => {
+    setBrigadaActualIndex((prev) => (prev + 1) % brigadas.length);
+  };
+
+  const anteriorBrigada = () => {
+    setBrigadaActualIndex((prev) => (prev - 1 + brigadas.length) % brigadas.length);
   };
 
   const formatearFecha = (fecha) => {
@@ -98,8 +109,8 @@ function ConglomeradoActivoCard({ usuario }) {
     );
   }
 
-  // Si no tiene brigada asignada
-  if (!brigada) {
+  // Si no tiene brigadas asignadas
+  if (brigadas.length === 0) {
     return (
       <div className="bg-gradient-to-br from-gray-400 to-gray-500 text-white p-6 rounded-lg shadow-lg">
         <div className="flex items-start gap-4">
@@ -122,82 +133,59 @@ function ConglomeradoActivoCard({ usuario }) {
     );
   }
 
-  // Si tiene brigada pero no conglomerado activo
-  if (!conglomeradoActivo) {
-    return (
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="bg-white bg-opacity-20 p-2 rounded-lg">
-              <Users size={20} />
-            </div>
-            <div>
-              <h3 className="font-bold text-lg">{brigada.nombre}</h3>
-              <p className="text-blue-100 text-xs">{brigada.zona_designada || 'Sin zona asignada'}</p>
-            </div>
-          </div>
-          {brigada.total_brigadas > 1 && (
-            <span className="bg-white bg-opacity-20 px-2 py-1 rounded text-xs font-semibold">
-              {brigada.total_brigadas} brigadas
-            </span>
-          )}
-        </div>
+  const brigadaActual = brigadas[brigadaActualIndex];
+  const conglomeradoActivo = conglomeradosActivos[brigadaActual.id];
+  const tieneMuchasBrigadas = brigadas.length > 1;
 
-        {/* Integrantes en grid compacto */}
-        {brigada.integrantes && brigada.integrantes.length > 0 && (
-          <div className="bg-white bg-opacity-10 rounded-lg p-3">
-            <p className="text-blue-100 text-xs mb-2 font-semibold">
-              Equipo ({brigada.integrantes.length})
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {brigada.integrantes.map((integrante) => (
-                <div key={integrante.id} className="bg-white bg-opacity-20 rounded p-2 text-xs">
-                  <p className="font-semibold truncate">{integrante.nombre_apellidos}</p>
-                  <p className="text-blue-100 text-[10px]">{getRolNombre(integrante.rol)}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-3 bg-white bg-opacity-10 rounded-lg p-3 text-center">
-          <p className="text-sm opacity-90">Sin conglomerado activo</p>
-          <p className="text-xs opacity-75 mt-1">Espera nueva asignación</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Si tiene brigada y conglomerado activo
   return (
     <div className="space-y-3">
-      {/* Información de la Brigada - Compacta */}
+      {/* Información de la Brigada - Con carrusel si tiene múltiples */}
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
+            {tieneMuchasBrigadas && (
+              <button
+                onClick={anteriorBrigada}
+                className="bg-white bg-opacity-20 p-2 rounded-lg hover:bg-opacity-30 transition"
+                title="Brigada anterior"
+              >
+                <ChevronLeft size={20} />
+              </button>
+            )}
             <div className="bg-white bg-opacity-20 p-2 rounded-lg">
               <Users size={20} />
             </div>
             <div>
-              <h3 className="font-bold text-lg">{brigada.nombre}</h3>
-              <p className="text-blue-100 text-xs">{brigada.zona_designada || 'Sin zona'}</p>
+              <h3 className="font-bold text-lg">{brigadaActual.nombre}</h3>
+              <p className="text-blue-100 text-xs">{brigadaActual.zona_designada || 'Sin zona'}</p>
             </div>
           </div>
-          {brigada.total_brigadas > 1 && (
-            <span className="bg-white bg-opacity-20 px-2 py-1 rounded text-xs font-semibold">
-              {brigada.total_brigadas} brigadas
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {tieneMuchasBrigadas && (
+              <>
+                <span className="bg-white bg-opacity-20 px-2 py-1 rounded text-xs font-semibold">
+                  {brigadaActualIndex + 1} / {brigadas.length}
+                </span>
+                <button
+                  onClick={siguienteBrigada}
+                  className="bg-white bg-opacity-20 p-2 rounded-lg hover:bg-opacity-30 transition"
+                  title="Brigada siguiente"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Integrantes en grid compacto */}
-        {brigada.integrantes && brigada.integrantes.length > 0 && (
+        {brigadaActual.integrantes && brigadaActual.integrantes.length > 0 && (
           <div className="bg-white bg-opacity-10 rounded-lg p-3">
             <p className="text-blue-100 text-xs mb-2 font-semibold">
-              Equipo ({brigada.integrantes.length})
+              Equipo ({brigadaActual.integrantes.length})
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {brigada.integrantes.map((integrante) => (
+              {brigadaActual.integrantes.map((integrante) => (
                 <div key={integrante.id} className="bg-white bg-opacity-20 rounded p-2 text-xs">
                   <p className="font-semibold truncate">{integrante.nombre_apellidos}</p>
                   <p className="text-blue-100 text-[10px]">{getRolNombre(integrante.rol)}</p>
@@ -206,42 +194,52 @@ function ConglomeradoActivoCard({ usuario }) {
             </div>
           </div>
         )}
+
+        {/* Sin conglomerado activo para esta brigada */}
+        {!conglomeradoActivo && (
+          <div className="mt-3 bg-white bg-opacity-10 rounded-lg p-3 text-center">
+            <p className="text-sm opacity-90">Sin conglomerado activo</p>
+            <p className="text-xs opacity-75 mt-1">Espera nueva asignación</p>
+          </div>
+        )}
       </div>
 
-      {/* Conglomerado Activo - Compacto */}
-      <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-4 rounded-lg shadow-lg hover:shadow-xl transition cursor-pointer"
-           onClick={() => navigate(`/conglomerados/${conglomeradoActivo.id}`)}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="bg-white bg-opacity-20 p-2 rounded-lg">
-              <MapPin size={20} />
+      {/* Conglomerado Activo - Solo si existe para esta brigada */}
+      {conglomeradoActivo && (
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-4 rounded-lg shadow-lg hover:shadow-xl transition cursor-pointer"
+             onClick={() => navigate(`/conglomerados/${conglomeradoActivo.id}`)}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="bg-white bg-opacity-20 p-2 rounded-lg">
+                <MapPin size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Conglomerado en Proceso</h3>
+                <p className="text-orange-100 text-xs">{conglomeradoActivo.nombre}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-lg">Conglomerado en Proceso</h3>
-              <p className="text-orange-100 text-xs">{conglomeradoActivo.nombre}</p>
-            </div>
+            <span className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs font-semibold">
+              ACTIVO
+            </span>
           </div>
-          <span className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs font-semibold">
-            ACTIVO
-          </span>
-        </div>
 
-        <div className="bg-white bg-opacity-10 rounded-lg p-3 space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-orange-100">Coordenadas:</span>
-            <span className="font-mono font-semibold">
-              {parseFloat(conglomeradoActivo.latitud).toFixed(4)}°, {parseFloat(conglomeradoActivo.longitud).toFixed(4)}°
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-orange-100">Asignado:</span>
-            <span className="font-semibold flex items-center gap-1">
-              <Calendar size={12} />
-              {formatearFecha(conglomeradoActivo.fecha_asignacion)}
-            </span>
+          <div className="bg-white bg-opacity-10 rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-orange-100">Coordenadas:</span>
+              <span className="font-mono font-semibold">
+                {parseFloat(conglomeradoActivo.latitud).toFixed(4)}°, {parseFloat(conglomeradoActivo.longitud).toFixed(4)}°
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-orange-100">Asignado:</span>
+              <span className="font-semibold flex items-center gap-1">
+                <Calendar size={12} />
+                {formatearFecha(conglomeradoActivo.fecha_asignacion)}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

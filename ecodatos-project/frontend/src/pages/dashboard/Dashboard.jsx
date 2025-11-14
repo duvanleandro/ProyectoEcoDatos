@@ -12,7 +12,8 @@ import {
   BarChart3,
   Microscope,
   Clipboard,
-  FileText
+  FileText,
+  Search
 } from 'lucide-react';
 
 function Dashboard() {
@@ -130,19 +131,35 @@ function Dashboard() {
   // Menú para Laboratorio
   const menuLaboratorio = [
     {
-      title: 'Clasificación Taxonómica',
-      icon: Microscope,
-      description: 'Clasificar muestras recibidas del campo',
-      path: '/laboratorio/clasificacion',
+      title: 'Catálogo de Especies',
+      icon: FlaskConical,
+      description: 'Gestionar catálogo de especies registradas',
+      path: '/especies/gestion',
+      color: 'bg-teal-600 hover:bg-teal-700',
+      roles: ['laboratorio']
+    },
+    {
+      title: 'Búsqueda de Especies',
+      icon: Search,
+      description: 'Buscar información detallada de especies con fotos',
+      path: '/laboratorio/busqueda-especies',
       color: 'bg-purple-600 hover:bg-purple-700',
       roles: ['laboratorio']
     },
     {
-      title: 'Catálogo de Especies',
-      icon: FlaskConical,
-      description: 'Consultar y gestionar especies',
-      path: '/especies/gestion',
-      color: 'bg-teal-600 hover:bg-teal-700',
+      title: 'Consultar Observaciones',
+      icon: Clipboard,
+      description: 'Ver observaciones registradas en campo',
+      path: '/observaciones/lista',
+      color: 'bg-blue-600 hover:bg-blue-700',
+      roles: ['laboratorio']
+    },
+    {
+      title: 'Reportes y Estadísticas',
+      icon: BarChart3,
+      description: 'Ver reportes e indicadores del proyecto',
+      path: '/reportes',
+      color: 'bg-green-600 hover:bg-green-700',
       roles: ['laboratorio']
     }
   ];

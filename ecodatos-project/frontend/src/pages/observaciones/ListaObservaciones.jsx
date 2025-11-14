@@ -17,6 +17,7 @@ function ListaObservaciones() {
 
   const esAdmin = ['admin', 'coordinador'].includes(usuario.tipo_usuario);
   const esBrigadista = ['jefe_brigada', 'botanico', 'tecnico_auxiliar', 'coinvestigador'].includes(usuario.tipo_usuario);
+  const esLaboratorio = usuario.tipo_usuario === 'laboratorio';
 
   useEffect(() => {
     cargarObservaciones();
@@ -30,11 +31,11 @@ function ListaObservaciones() {
       if (esBrigadista) {
         // Brigadistas: Solo sus observaciones (de su brigada)
         const responseBrigada = await axios.get(`http://localhost:3003/api/brigadas/usuario/${usuario.id}`);
-        
+
         if (responseBrigada.data.success && responseBrigada.data.data) {
           const idBrigada = responseBrigada.data.data.id;
           const response = await axios.get(`http://localhost:3005/api/observaciones/brigada/${idBrigada}`);
-          
+
           if (response.data.success) {
             observacionesFiltradas = response.data.data;
           }
@@ -42,9 +43,16 @@ function ListaObservaciones() {
       } else if (esAdmin) {
         // Admin: Solo observaciones enviadas por jefe (validado_por_jefe = true)
         const response = await axios.get('http://localhost:3005/api/observaciones');
-        
+
         if (response.data.success) {
           observacionesFiltradas = response.data.data.filter(obs => obs.validado_por_jefe === true);
+        }
+      } else if (esLaboratorio) {
+        // Laboratorio: Solo observaciones validadas (validado = true)
+        const response = await axios.get('http://localhost:3005/api/observaciones');
+
+        if (response.data.success) {
+          observacionesFiltradas = response.data.data.filter(obs => obs.validado === true);
         }
       }
 
@@ -130,7 +138,7 @@ function ListaObservaciones() {
             <div className="flex items-center gap-3">
               <FileText className="w-8 h-8 text-green-600" />
               <h1 className="text-2xl font-bold text-gray-800">
-                {esBrigadista ? 'Mis Observaciones' : 'Observaciones para Revisión'}
+                {esBrigadista ? 'Mis Observaciones' : esLaboratorio ? 'Observaciones Validadas' : 'Observaciones para Revisión'}
               </h1>
             </div>
             {esBrigadista && (
@@ -145,25 +153,29 @@ function ListaObservaciones() {
           </div>
 
           {/* Estadísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className={`grid grid-cols-1 gap-4 ${esLaboratorio ? 'md:grid-cols-1' : 'md:grid-cols-4'}`}>
             <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Total Observaciones</p>
+              <p className="text-sm text-gray-600">{esLaboratorio ? 'Total Observaciones Validadas' : 'Total Observaciones'}</p>
               <p className="text-2xl font-bold text-blue-600">{estadisticas.total}</p>
             </div>
-            {esBrigadista && (
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Sin Enviar</p>
-                <p className="text-2xl font-bold text-yellow-600">{estadisticas.sin_enviar}</p>
-              </div>
+            {!esLaboratorio && (
+              <>
+                {esBrigadista && (
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Sin Enviar</p>
+                    <p className="text-2xl font-bold text-yellow-600">{estadisticas.sin_enviar}</p>
+                  </div>
+                )}
+                <div className="bg-orange-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">Pendientes</p>
+                  <p className="text-2xl font-bold text-orange-600">{estadisticas.pendientes}</p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">Validadas</p>
+                  <p className="text-2xl font-bold text-green-600">{estadisticas.validadas}</p>
+                </div>
+              </>
             )}
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Pendientes</p>
-              <p className="text-2xl font-bold text-orange-600">{estadisticas.pendientes}</p>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Validadas</p>
-              <p className="text-2xl font-bold text-green-600">{estadisticas.validadas}</p>
-            </div>
           </div>
         </div>
 
@@ -182,18 +194,20 @@ function ListaObservaciones() {
                 />
               </div>
             </div>
-            <div>
-              <select
-                value={filtros.estado}
-                onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              >
-                <option value="">Todos los estados</option>
-                {esBrigadista && <option value="sin_enviar">Sin Enviar</option>}
-                <option value="pendiente">Pendientes</option>
-                <option value="validada">Validadas</option>
-              </select>
-            </div>
+            {!esLaboratorio && (
+              <div>
+                <select
+                  value={filtros.estado}
+                  onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="">Todos los estados</option>
+                  {esBrigadista && <option value="sin_enviar">Sin Enviar</option>}
+                  <option value="pendiente">Pendientes</option>
+                  <option value="validada">Validadas</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
 

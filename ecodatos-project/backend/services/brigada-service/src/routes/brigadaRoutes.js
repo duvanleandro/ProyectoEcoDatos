@@ -14,6 +14,7 @@ router.get('/integrantes', verificarToken, brigadaController.listarIntegrantes);
 // Brigadas
 router.post('/', verificarToken, esCoordinadorOAdmin, brigadaController.crear);
 router.get('/', verificarToken, brigadaController.listar);
+router.get('/usuario/:idUsuario/todas', verificarToken, brigadaController.obtenerTodasPorUsuario);
 router.get('/usuario/:idUsuario', verificarToken, brigadaController.obtenerPorUsuario);
 router.get('/:id', verificarToken, brigadaController.obtenerPorId);
 router.delete('/:id', verificarToken, esAdmin, brigadaController.eliminarBrigada);

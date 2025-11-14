@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, LogOut, User, ArrowLeft } from 'lucide-react';
-import BannerUsuarioInactivo from './BannerUsuarioInactivo';
 import { useUsuario } from '../../context/UsuarioContext';
 
 function Layout({ children }) {
@@ -77,7 +76,6 @@ function Layout({ children }) {
 
       {/* Content */}
       <main className="p-6">
-        <BannerUsuarioInactivo />
         {children}
       </main>
     </div>

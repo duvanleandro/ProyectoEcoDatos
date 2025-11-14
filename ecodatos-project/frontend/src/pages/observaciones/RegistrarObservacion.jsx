@@ -2,16 +2,23 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/Layout';
 import axios from 'axios';
-import { FileText, Save, X, MapPin, CloudRain, TreePine, Upload, Send, Lock } from 'lucide-react';
+import { FileText, Save, X, MapPin, CloudRain, TreePine, Upload, Send, Lock, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 
 function RegistrarObservacion() {
   const navigate = useNavigate();
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
-  
+
   const [loading, setLoading] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState('');
+
+  // Múltiples conglomerados y brigadas
+  const [conglomeradosDisponibles, setConglomeradosDisponibles] = useState([]);
+  const [indiceActual, setIndiceActual] = useState(0);
+
+  // Estados para el conglomerado actual seleccionado
   const [conglomerado, setConglomerado] = useState(null);
+  const [brigada, setBrigada] = useState(null);
   const [observacionExistente, setObservacionExistente] = useState(null);
   const [puedeEditar, setPuedeEditar] = useState(true);
   const [fotosSubidas, setFotosSubidas] = useState([]);
@@ -59,89 +66,131 @@ function RegistrarObservacion() {
   });
 
   useEffect(() => {
-    cargarConglomeradoEnProceso();
+    cargarConglomeradosDisponibles();
   }, []);
 
-  const cargarConglomeradoEnProceso = async () => {
+  // Efecto para cargar datos cuando cambia el índice actual
+  useEffect(() => {
+    if (conglomeradosDisponibles.length > 0) {
+      cargarDatosConglomerado(indiceActual);
+    }
+  }, [indiceActual, conglomeradosDisponibles]);
+
+  const cargarConglomeradosDisponibles = async () => {
     setCargando(true);
     try {
-      // Obtener conglomerados de la brigada del usuario
-      const responseBrigada = await axios.get(`http://localhost:3003/api/brigadas/usuario/${usuario.id}`);
-      
-      if (!responseBrigada.data.success || !responseBrigada.data.data) {
+      // 1. Obtener TODAS las brigadas del usuario
+      const responseBrigadas = await axios.get(`http://localhost:3003/api/brigadas/usuario/${usuario.id}/todas`);
+
+      if (!responseBrigadas.data.success || responseBrigadas.data.data.length === 0) {
         setMensaje('❌ No perteneces a ninguna brigada');
         setCargando(false);
         return;
       }
 
-      const idBrigada = responseBrigada.data.data.id;
+      const brigadas = responseBrigadas.data.data;
+      console.log('📋 Brigadas del usuario:', brigadas);
 
-      // Buscar conglomerado EN PROCESO o COMPLETADO de esta brigada
+      // 2. Obtener todos los conglomerados
       const responseConglomerados = await axios.get(`http://localhost:3002/api/conglomerados`);
-      const conglomerados = responseConglomerados.data.data;
-      
-// Priorizar conglomerado EN PROCESO
-let conglomeradoActual = conglomerados.find(
-  c => c.brigada_id === idBrigada && c.estado === 'En_Proceso'
-);
+      const todosConglomerados = responseConglomerados.data.data;
 
-// Si no hay en proceso, buscar completado NO validado por jefe o sin observación
-if (!conglomeradoActual) {
-  const completados = conglomerados.filter(
-    c => c.brigada_id === idBrigada && c.estado === 'Completado'
-  );
+      // 3. Para cada brigada, buscar conglomerados disponibles (En_Proceso o Completado sin validar)
+      const conglomeradosConBrigada = [];
 
-  // Verificar cuál NO ha sido enviado o NO tiene observación
-  for (const comp of completados) {
-    try {
-      const responseObs = await axios.get(`http://localhost:3005/api/observaciones/conglomerado/${comp.id}`);
-      if (responseObs.data.success && responseObs.data.data.length > 0) {
-        const obs = responseObs.data.data[0];
-        if (!obs.validado_por_jefe) {
-          conglomeradoActual = comp;
-          break;
+      for (const brig of brigadas) {
+        // Buscar conglomerado EN PROCESO de esta brigada
+        let conglomeradoActual = todosConglomerados.find(
+          c => c.brigada_id === brig.id && c.estado === 'En_Proceso'
+        );
+
+        // Si no hay en proceso, buscar completado NO validado por jefe o sin observación
+        if (!conglomeradoActual) {
+          const completados = todosConglomerados.filter(
+            c => c.brigada_id === brig.id && c.estado === 'Completado'
+          );
+
+          for (const comp of completados) {
+            try {
+              const responseObs = await axios.get(`http://localhost:3005/api/observaciones/conglomerado/${comp.id}`);
+              if (responseObs.data.success && responseObs.data.data.length > 0) {
+                const obs = responseObs.data.data[0];
+                if (!obs.validado_por_jefe) {
+                  conglomeradoActual = comp;
+                  break;
+                }
+              } else {
+                // No tiene observación registrada, permitir registrarla
+                conglomeradoActual = comp;
+                break;
+              }
+            } catch (error) {
+              // Si hay error al obtener observación, asumir que no existe
+              conglomeradoActual = comp;
+              break;
+            }
+          }
         }
-      } else {
-        // No tiene observación registrada, permitir registrarla
-        conglomeradoActual = comp;
-        break;
-      }
-    } catch (error) {
-      // Si hay error al obtener observación, asumir que no existe
-      conglomeradoActual = comp;
-      break;
-    }
-  }
-}
 
-      if (!conglomeradoActual) {
+        // Si esta brigada tiene conglomerado disponible, agregarlo a la lista
+        if (conglomeradoActual) {
+          conglomeradosConBrigada.push({
+            conglomerado: conglomeradoActual,
+            brigada: brig
+          });
+        }
+      }
+
+      console.log('🌳 Conglomerados disponibles:', conglomeradosConBrigada);
+
+      if (conglomeradosConBrigada.length === 0) {
         setMensaje('⚠️ No tienes ningún conglomerado en proceso o completado. Inicia uno desde "Mis Conglomerados Asignados".');
         setCargando(false);
         return;
       }
 
-      setConglomerado(conglomeradoActual);
+      setConglomeradosDisponibles(conglomeradosConBrigada);
+      // Cargar el primero automáticamente
+      await cargarDatosConglomerado(0, conglomeradosConBrigada);
+
+    } catch (error) {
+      console.error('Error al cargar conglomerados:', error);
+      setMensaje('❌ Error al cargar información de conglomerados');
+      setCargando(false);
+    }
+  };
+
+  const cargarDatosConglomerado = async (indice, conglomeradosArray = conglomeradosDisponibles) => {
+    if (conglomeradosArray.length === 0) return;
+
+    setCargando(true);
+    try {
+      const { conglomerado: congActual, brigada: brigActual } = conglomeradosArray[indice];
+      setConglomerado(congActual);
+      setBrigada(brigActual);
 
       // Buscar si ya existe una observación para este conglomerado
       const responseObs = await axios.get(
-        `http://localhost:3005/api/observaciones/conglomerado/${conglomeradoActual.id}`
+        `http://localhost:3005/api/observaciones/conglomerado/${congActual.id}`
       );
 
       if (responseObs.data.success && responseObs.data.data.length > 0) {
         const obs = responseObs.data.data[0];
         setObservacionExistente(obs);
-        
+
         // Verificar si puede editar (no validada por jefe ni por admin)
         if (obs.validado_por_jefe || obs.validado) {
           setPuedeEditar(false);
+        } else {
+          setPuedeEditar(true);
         }
-        
+
         // Precargar datos de la observación existente
         setFormData({
-          ...formData,
           id_conglomerado: obs.id_conglomerado,
+          id_subparcela: obs.id_subparcela || '',
           id_brigada: obs.id_brigada,
-          fecha_observacion: obs.fecha_observacion?.split('T')[0] || formData.fecha_observacion,
+          fecha_observacion: obs.fecha_observacion?.split('T')[0] || new Date().toISOString().split('T')[0],
           hora_inicio: obs.hora_inicio || '',
           hora_fin: obs.hora_fin || '',
           temperatura: obs.temperatura || '',
@@ -163,23 +212,57 @@ if (!conglomeradoActual) {
           precision_gps: obs.precision_gps || 'alta',
           disturbios_humanos: obs.disturbios_humanos || '',
           evidencia_fauna: obs.evidencia_fauna || '',
-          especies_invasoras: obs.especies_invasoras || ''
+          especies_invasoras: obs.especies_invasoras || '',
+          registrado_por: usuario.id || 1
         });
       } else {
         // No hay observación, usar valores por defecto con el conglomerado
-        setFormData(prev => ({
-          ...prev,
-          id_conglomerado: conglomeradoActual.id,
-          id_brigada: idBrigada
-        }));
+        setObservacionExistente(null);
+        setPuedeEditar(true);
+        setFormData({
+          id_conglomerado: congActual.id,
+          id_subparcela: '',
+          id_brigada: brigActual.id,
+          fecha_observacion: new Date().toISOString().split('T')[0],
+          hora_inicio: '',
+          hora_fin: '',
+          temperatura: '',
+          humedad: '',
+          condiciones_clima: 'soleado',
+          precipitacion: 'sin_lluvia',
+          observaciones_generales: '',
+          descripcion_vegetacion: '',
+          fauna_observada: '',
+          notas_coinvestigador: '',
+          pendiente_grados: '',
+          tipo_suelo: '',
+          cobertura_vegetal: '',
+          erosion: 'ninguna',
+          presencia_agua: 'ninguna',
+          latitud_verificada: '',
+          longitud_verificada: '',
+          altitud_msnm: '',
+          precision_gps: 'alta',
+          disturbios_humanos: '',
+          evidencia_fauna: '',
+          especies_invasoras: '',
+          registrado_por: usuario.id || 1
+        });
       }
-
     } catch (error) {
-      console.error('Error al cargar conglomerado:', error);
-      setMensaje('❌ Error al cargar información del conglomerado');
+      console.error('Error al cargar datos del conglomerado:', error);
+      setMensaje('❌ Error al cargar observación');
     } finally {
       setCargando(false);
     }
+  };
+
+  const siguienteConglomerado = () => {
+    setIndiceActual((prev) => (prev + 1) % conglomeradosDisponibles.length);
+  };
+
+  const anteriorConglomerado = () => {
+    setIndiceActual((prev) => (prev - 1 + conglomeradosDisponibles.length) % conglomeradosDisponibles.length);
   };
 
   const handleChange = (e) => {
@@ -234,9 +317,9 @@ const datosLimpios = {
         setTimeout(() => {
           setMensaje('');
         }, 3000);
-        
-        // Recargar datos
-        cargarConglomeradoEnProceso();
+
+        // Recargar datos del conglomerado actual
+        await cargarDatosConglomerado(indiceActual);
       }
     } catch (error) {
       setMensaje('❌ Error al guardar observación: ' + (error.response?.data?.message || error.message));
@@ -279,7 +362,7 @@ const datosLimpios = {
       setFotosSubidas(response.data.data.fotos || []);
       setTimeout(() => setMensaje(''), 3000);
       // Recargar observación para actualizar fotos
-      cargarConglomeradoEnProceso();
+      await cargarDatosConglomerado(indiceActual);
     }
   } catch (error) {
     setMensaje('❌ Error al subir fotos: ' + (error.response?.data?.message || error.message));
@@ -364,34 +447,98 @@ const esJefeBrigada = usuario.tipo_usuario === 'jefe_brigada';
   const conglomeradoCompletado = conglomerado?.estado === 'Completado';
   const puedeEnviar = esJefeBrigada && conglomeradoCompletado && observacionExistente && !observacionExistente.validado_por_jefe;
 
+  const tieneMuchosConglomerados = conglomeradosDisponibles.length > 1;
+
   return (
     <Layout>
       <div className="max-w-5xl mx-auto">
         <div className="bg-white rounded-lg shadow-md p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <FileText className="w-8 h-8 text-green-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">
-                  {observacionExistente ? 'Editar' : 'Registrar'} Observación de Campo
-                  {!puedeEditar && <Lock className="inline-block w-6 h-6 ml-2 text-red-500" />}
-                </h1>
-                <p className="text-sm text-gray-600">
-                  <strong>Conglomerado:</strong> {conglomerado.nombre} | <strong>Estado:</strong> {conglomerado.estado}
-                </p>
-                <p className="text-xs text-gray-500">
-                  ID: {conglomerado.id} | Ubicación: {conglomerado.ubicacion}
-                </p>
+          {/* Header con carrusel */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <FileText className="w-8 h-8 text-green-600" />
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800">
+                    {observacionExistente ? 'Editar' : 'Registrar'} Observación de Campo
+                    {!puedeEditar && <Lock className="inline-block w-6 h-6 ml-2 text-red-500" />}
+                  </h1>
+                  {tieneMuchosConglomerados && (
+                    <p className="text-xs text-blue-600">
+                      📋 Tienes {conglomeradosDisponibles.length} conglomerados disponibles. Usa las flechas para cambiar.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+                Volver
+              </button>
+            </div>
+
+            {/* Card de Brigada y Conglomerado con carrusel */}
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                {/* Botón anterior (solo si hay múltiples) */}
+                {tieneMuchosConglomerados && (
+                  <button
+                    onClick={anteriorConglomerado}
+                    className="bg-white p-2 rounded-lg hover:bg-gray-100 shadow transition"
+                    title="Conglomerado anterior"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-gray-700" />
+                  </button>
+                )}
+
+                {/* Información central */}
+                <div className="flex-1 mx-4">
+                  {/* Brigada */}
+                  <div className="mb-3 bg-white bg-opacity-70 rounded-lg p-3 border border-blue-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Users className="w-4 h-4 text-blue-600" />
+                      <span className="text-xs font-semibold text-blue-600 uppercase">Brigada</span>
+                    </div>
+                    <p className="font-bold text-lg text-gray-800">{brigada?.nombre || 'Cargando...'}</p>
+                    <p className="text-xs text-gray-600">{brigada?.zona_designada || 'Sin zona asignada'}</p>
+                  </div>
+
+                  {/* Conglomerado */}
+                  <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-green-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MapPin className="w-4 h-4 text-green-600" />
+                      <span className="text-xs font-semibold text-green-600 uppercase">Conglomerado</span>
+                    </div>
+                    <p className="font-bold text-lg text-gray-800">{conglomerado.nombre}</p>
+                    <div className="flex items-center gap-4 text-xs text-gray-600 mt-1">
+                      <span><strong>ID:</strong> {conglomerado.id}</span>
+                      <span><strong>Estado:</strong> {conglomerado.estado}</span>
+                      <span><strong>Ubicación:</strong> {conglomerado.ubicacion}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botón siguiente (solo si hay múltiples) */}
+                {tieneMuchosConglomerados ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <button
+                      onClick={siguienteConglomerado}
+                      className="bg-white p-2 rounded-lg hover:bg-gray-100 shadow transition"
+                      title="Conglomerado siguiente"
+                    >
+                      <ChevronRight className="w-5 h-5 text-gray-700" />
+                    </button>
+                    <span className="text-xs font-semibold text-gray-600 bg-white px-2 py-1 rounded">
+                      {indiceActual + 1} / {conglomeradosDisponibles.length}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="w-10" />
+                )}
               </div>
             </div>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-            >
-              <X className="w-5 h-5" />
-              Volver
-            </button>
           </div>
 
           {/* Alerta si no puede editar */}

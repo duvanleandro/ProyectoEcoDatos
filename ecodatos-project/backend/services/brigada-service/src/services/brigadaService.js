@@ -456,6 +456,66 @@ class BrigadaService {
       throw new Error('Error al obtener brigada del usuario: ' + error.message);
     }
   }
+
+  /**
+   * Obtener TODAS las brigadas del usuario (no solo una)
+   */
+  async obtenerTodasBrigadasPorUsuario(idUsuario) {
+    try {
+      // Obtener TODAS las brigadas del usuario
+      const brigadas = await sequelize.query(`
+        SELECT DISTINCT b.*
+        FROM brigada b
+        INNER JOIN brigadaintegrante bi ON b.id = bi.id_brigada
+        INNER JOIN integrante i ON bi.id_integrante = i.id
+        INNER JOIN usuarios u ON i.id = u.id_integrante
+        WHERE u.id = :idUsuario
+        ORDER BY b.activo DESC, b.id DESC
+      `, {
+        replacements: { idUsuario },
+        type: sequelize.QueryTypes.SELECT
+      });
+
+      if (brigadas.length === 0) {
+        return [];
+      }
+
+      // Para cada brigada, obtener sus integrantes
+      const brigadasConIntegrantes = [];
+      for (const brigada of brigadas) {
+        const integrantes = await sequelize.query(`
+          SELECT i.id, i.nombre_apellidos, i.rol, i.especialidad, i.telefono, i.email
+          FROM integrante i
+          INNER JOIN brigadaintegrante bi ON i.id = bi.id_integrante
+          WHERE bi.id_brigada = :id_brigada
+          ORDER BY
+            CASE i.rol
+              WHEN 'jefe_brigada' THEN 1
+              WHEN 'botanico' THEN 2
+              WHEN 'tecnico_auxiliar' THEN 3
+              WHEN 'coinvestigador' THEN 4
+              ELSE 5
+            END,
+            i.nombre_apellidos ASC
+        `, {
+          replacements: { id_brigada: brigada.id },
+          type: sequelize.QueryTypes.SELECT
+        });
+
+        brigadasConIntegrantes.push({
+          id: brigada.id,
+          nombre: brigada.nombre,
+          zona_designada: brigada.zona_designada,
+          activo: brigada.activo,
+          integrantes: integrantes
+        });
+      }
+
+      return brigadasConIntegrantes;
+    } catch (error) {
+      throw new Error('Error al obtener todas las brigadas del usuario: ' + error.message);
+    }
+  }
 }
 
 
