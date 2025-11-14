@@ -1143,8 +1143,8 @@ npm test
 ## 👨‍💻 Equipo de Desarrollo
 
 ### Desarrolladores
-- **Duvan Leandro Pedraza Gonzalez** - Full Stack Developer
-- **Stefany Dayana Medina Galvis** - Full Stack Developer
+- **Duvan Leandro Pedraza Gonzalez**
+- **Stefany Dayana Medina Galvis**
 
 ### Información del Proyecto
 - **Grupo:** 5A
@@ -1154,7 +1154,7 @@ npm test
 - **Período:** 2025-1
 - **Tipo:** Proyecto Integrador
 
-**Repositorio:** [@duvanleandro/ProyectoIntegrador](https://github.com/duvanleandro/ProyectoEcoDatos)
+**Repositorio:** [@duvanleandro/ProyectoEcoDatos](https://github.com/duvanleandro/ProyectoEcoDatos)
 
 ---
 
