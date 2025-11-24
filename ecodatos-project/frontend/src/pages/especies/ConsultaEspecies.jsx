@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import Layout from '../../components/common/Layout';
 import { FlaskConical, Search, Eye } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function ConsultaEspecies() {
   const [especies, setEspecies] = useState([]);
@@ -14,7 +15,7 @@ function ConsultaEspecies() {
 
   const cargarEspecies = async () => {
     try {
-      const response = await axios.get('http://localhost:3004/api/especies');
+      const response = await axios.get(`${API_CONFIG.ESPECIE_SERVICE}${ENDPOINTS.ESPECIE.BASE}`);
       if (response.data.success) {
         setEspecies(response.data.data);
       }

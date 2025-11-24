@@ -1,6 +1,7 @@
-import axios from 'axios';
+import axios from '../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../config/api';
 
-const API_URL = 'http://localhost:3005/api/observaciones';
+const API_URL = `${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}`;
 
 export const observacionService = {
   // Crear observación

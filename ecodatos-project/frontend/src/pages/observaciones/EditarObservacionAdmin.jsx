@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/Layout';
 import { Save, X, MapPin, CloudRain, TreePine, Upload, Camera, CheckCircle } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function EditarObservacionAdmin() {
   const { id } = useParams();
@@ -52,7 +53,7 @@ function EditarObservacionAdmin() {
   const cargarObservacion = async () => {
     setCargando(true);
     try {
-      const response = await axios.get(`http://localhost:3005/api/observaciones/${id}`);
+      const response = await axios.get(`${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${id}`);
       
       if (response.data.success) {
         const obs = response.data.data;
@@ -88,7 +89,7 @@ function EditarObservacionAdmin() {
 
         // Cargar info del conglomerado
         if (obs.id_conglomerado) {
-          const responseCong = await axios.get(`http://localhost:3002/api/conglomerados/${obs.id_conglomerado}`);
+          const responseCong = await axios.get(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}/${obs.id_conglomerado}`);
           if (responseCong.data.success) {
             setConglomerado(responseCong.data.data);
           }
@@ -129,7 +130,7 @@ function EditarObservacionAdmin() {
       };
 
       const response = await axios.put(
-        `http://localhost:3005/api/observaciones/${id}`,
+        `${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${id}`,
         datosLimpios
       );
       
@@ -159,7 +160,7 @@ function EditarObservacionAdmin() {
 
     try {
       const response = await axios.post(
-        `http://localhost:3005/api/observaciones/${id}/fotos`,
+        `${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${id}/fotos`,
         formDataFotos,
         {
           headers: {
@@ -187,7 +188,7 @@ function EditarObservacionAdmin() {
 
     try {
       const response = await axios.delete(
-        `http://localhost:3005/api/observaciones/${id}/fotos/${nombreFoto}`
+        `${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${id}/fotos/${nombreFoto}`
       );
 
       if (response.data.success) {
@@ -206,7 +207,7 @@ function EditarObservacionAdmin() {
     setLoading(true);
     try {
       const response = await axios.put(
-        `http://localhost:3005/api/observaciones/${id}/validar-admin`,
+        `${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${id}/validar-admin`,
         { idUsuario: usuario.id }
       );
       
@@ -430,7 +431,7 @@ function EditarObservacionAdmin() {
                   {formData.fotos.map((foto, index) => (
                     <div key={index} className="relative group">
                       <img
-                        src={`http://localhost:3005/uploads/observaciones/${id}/${foto}`}
+                        src={`${API_CONFIG.OBSERVACION_SERVICE}/uploads/observaciones/${id}/${foto}`}
                         alt={`Foto ${index + 1}`}
                         className="w-full h-32 object-cover rounded-lg border"
                       />

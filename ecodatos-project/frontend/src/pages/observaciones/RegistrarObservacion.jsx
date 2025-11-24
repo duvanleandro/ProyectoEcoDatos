@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/Layout';
-import axios from 'axios';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 import { FileText, Save, X, MapPin, CloudRain, TreePine, Upload, Send, Lock, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 
 function RegistrarObservacion() {
@@ -80,7 +81,7 @@ function RegistrarObservacion() {
     setCargando(true);
     try {
       // 1. Obtener TODAS las brigadas del usuario
-      const responseBrigadas = await axios.get(`http://localhost:3003/api/brigadas/usuario/${usuario.id}/todas`);
+      const responseBrigadas = await axios.get(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}/usuario/${usuario.id}/todas`);
 
       if (!responseBrigadas.data.success || responseBrigadas.data.data.length === 0) {
         setMensaje('❌ No perteneces a ninguna brigada');
@@ -92,7 +93,7 @@ function RegistrarObservacion() {
       console.log('📋 Brigadas del usuario:', brigadas);
 
       // 2. Obtener todos los conglomerados
-      const responseConglomerados = await axios.get(`http://localhost:3002/api/conglomerados`);
+      const responseConglomerados = await axios.get(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}`);
       const todosConglomerados = responseConglomerados.data.data;
 
       // 3. Para cada brigada, buscar conglomerados disponibles (En_Proceso o Completado sin validar)
@@ -112,7 +113,7 @@ function RegistrarObservacion() {
 
           for (const comp of completados) {
             try {
-              const responseObs = await axios.get(`http://localhost:3005/api/observaciones/conglomerado/${comp.id}`);
+              const responseObs = await axios.get(`${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/conglomerado/${comp.id}`);
               if (responseObs.data.success && responseObs.data.data.length > 0) {
                 const obs = responseObs.data.data[0];
                 if (!obs.validado_por_jefe) {
@@ -171,7 +172,7 @@ function RegistrarObservacion() {
 
       // Buscar si ya existe una observación para este conglomerado
       const responseObs = await axios.get(
-        `http://localhost:3005/api/observaciones/conglomerado/${congActual.id}`
+        `${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/conglomerado/${congActual.id}`
       );
 
       if (responseObs.data.success && responseObs.data.data.length > 0) {
@@ -304,12 +305,12 @@ const datosLimpios = {
       if (observacionExistente) {
         // Actualizar observación existente
         response = await axios.put(
-          `http://localhost:3005/api/observaciones/${observacionExistente.id}`,
+          `${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${observacionExistente.id}`,
           datosLimpios
         );
       } else {
         // Crear nueva observación
-        response = await axios.post('http://localhost:3005/api/observaciones', datosLimpios);
+        response = await axios.post(`${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}`, datosLimpios);
       }
       
       if (response.data.success) {
@@ -348,7 +349,7 @@ const datosLimpios = {
 
   try {
     const response = await axios.post(
-      `http://localhost:3005/api/observaciones/${observacionExistente.id}/fotos`,
+      `${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${observacionExistente.id}/fotos`,
       formData,
       {
         headers: {
@@ -377,7 +378,7 @@ const handleEliminarFoto = async (nombreFoto) => {
 
   try {
     const response = await axios.delete(
-      `http://localhost:3005/api/observaciones/${observacionExistente.id}/fotos/${nombreFoto}`
+      `${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${observacionExistente.id}/fotos/${nombreFoto}`
     );
 
     if (response.data.success) {
@@ -397,7 +398,7 @@ const handleEliminarFoto = async (nombreFoto) => {
     setLoading(true);
     try {
       const response = await axios.put(
-        `http://localhost:3005/api/observaciones/${observacionExistente.id}/validar-jefe`,
+        `${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${observacionExistente.id}/validar-jefe`,
         { idJefe: usuario.id }
       );
 
@@ -794,7 +795,7 @@ const esJefeBrigada = usuario.tipo_usuario === 'jefe_brigada';
       {observacionExistente.fotos.map((foto, index) => (
         <div key={index} className="relative group">
           <img
-            src={`http://localhost:3005/uploads/observaciones/${observacionExistente.id}/${foto}`}
+            src={`${API_CONFIG.OBSERVACION_SERVICE}/uploads/observaciones/${observacionExistente.id}/${foto}`}
             alt={`Foto ${index + 1}`}
             className="w-full h-32 object-cover rounded-lg border"
           />

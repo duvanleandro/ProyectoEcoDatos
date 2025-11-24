@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import Layout from '../../components/common/Layout';
 import { MapPin, Play, CheckCircle, Eye, Leaf } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function MisConglomerados() {
   const [conglomerados, setConglomerados] = useState([]);
@@ -19,7 +20,7 @@ function MisConglomerados() {
       setLoading(true);
 
       // 1. Obtener TODAS las brigadas del usuario
-      const respBrigadas = await axios.get(`http://localhost:3003/api/brigadas/usuario/${usuario.id}/todas`);
+      const respBrigadas = await axios.get(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}/usuario/${usuario.id}/todas`);
 
       if (!respBrigadas.data.success || respBrigadas.data.data.length === 0) {
         console.log('⚠️ Usuario no tiene brigadas asignadas');
@@ -33,7 +34,7 @@ function MisConglomerados() {
       console.log('📋 Brigadas del usuario:', brigadasIds);
 
       // 2. Obtener todos los conglomerados
-      const response = await axios.get('http://localhost:3002/api/conglomerados');
+      const response = await axios.get(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}`);
 
       if (response.data.success) {
         // 3. Filtrar solo los conglomerados de las brigadas del usuario
@@ -58,7 +59,7 @@ function MisConglomerados() {
 
     try {
       const response = await axios.put(
-        `http://localhost:3002/api/conglomerados/${conglomeradoId}/estado`,
+        `${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}/${conglomeradoId}/estado`,
         { estado: 'En_Proceso' }
       );
 
@@ -78,7 +79,7 @@ function MisConglomerados() {
 
     try {
       const response = await axios.put(
-        `http://localhost:3002/api/conglomerados/${conglomeradoId}/estado`,
+        `${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}/${conglomeradoId}/estado`,
         { estado: 'Completado' }
       );
 

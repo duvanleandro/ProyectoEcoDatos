@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/Layout';
 import { FileText, Plus, Eye, CheckCircle, Filter, Search, Camera } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function ListaObservaciones() {
   const navigate = useNavigate();
@@ -30,11 +31,11 @@ function ListaObservaciones() {
 
       if (esBrigadista) {
         // Brigadistas: Solo sus observaciones (de su brigada)
-        const responseBrigada = await axios.get(`http://localhost:3003/api/brigadas/usuario/${usuario.id}`);
+        const responseBrigada = await axios.get(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}/usuario/${usuario.id}`);
 
         if (responseBrigada.data.success && responseBrigada.data.data) {
           const idBrigada = responseBrigada.data.data.id;
-          const response = await axios.get(`http://localhost:3005/api/observaciones/brigada/${idBrigada}`);
+          const response = await axios.get(`${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/brigada/${idBrigada}`);
 
           if (response.data.success) {
             observacionesFiltradas = response.data.data;
@@ -42,14 +43,14 @@ function ListaObservaciones() {
         }
       } else if (esAdmin) {
         // Admin: Solo observaciones enviadas por jefe (validado_por_jefe = true)
-        const response = await axios.get('http://localhost:3005/api/observaciones');
+        const response = await axios.get(`${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}`);
 
         if (response.data.success) {
           observacionesFiltradas = response.data.data.filter(obs => obs.validado_por_jefe === true);
         }
       } else if (esLaboratorio) {
         // Laboratorio: Solo observaciones validadas (validado = true)
-        const response = await axios.get('http://localhost:3005/api/observaciones');
+        const response = await axios.get(`${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}`);
 
         if (response.data.success) {
           observacionesFiltradas = response.data.data.filter(obs => obs.validado === true);
@@ -82,7 +83,7 @@ function ListaObservaciones() {
     if (!window.confirm('¿Está seguro de realizar la validación final? Esta acción es irreversible.')) return;
 
     try {
-      const response = await axios.put(`http://localhost:3005/api/observaciones/${id}/validar-admin`, {
+      const response = await axios.put(`${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${id}/validar-admin`, {
         idUsuario: usuario.id
       });
 

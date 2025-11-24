@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import Layout from '../../components/common/Layout';
 import { Users, MapPin, Loader, CheckCircle, Trash2 } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function AsignarBrigada() {
   const [brigadas, setBrigadas] = useState([]);
@@ -20,7 +21,7 @@ function AsignarBrigada() {
 
   const cargarBrigadas = async () => {
     try {
-      const response = await axios.get('http://localhost:3003/api/brigadas');
+      const response = await axios.get(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}`);
       if (response.data.success) {
         setBrigadas(response.data.data);
       }
@@ -31,7 +32,7 @@ function AsignarBrigada() {
 
   const cargarConglomeradosAprobados = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/api/conglomerados?estado=Aprobado');
+      const response = await axios.get(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}?estado=Aprobado`);
       if (response.data.success) {
         setConglomerados(response.data.data);
       }
@@ -43,12 +44,12 @@ function AsignarBrigada() {
   const cargarAsignaciones = async () => {
     try {
       // Obtener todas las asignaciones de todas las brigadas
-      const brigadasRes = await axios.get('http://localhost:3003/api/brigadas');
+      const brigadasRes = await axios.get(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}`);
       if (!brigadasRes.data.success) return;
 
       const todasAsignaciones = [];
       for (const brigada of brigadasRes.data.data) {
-        const res = await axios.get(`http://localhost:3003/api/brigadas/${brigada.id}/conglomerados`);
+        const res = await axios.get(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.CONGLOMERADOS(brigada.id)}`);
         if (res.data.success) {
           res.data.data.forEach(cong => {
             todasAsignaciones.push({
@@ -76,7 +77,7 @@ function AsignarBrigada() {
 
     try {
       const response = await axios.post(
-        `http://localhost:3003/api/brigadas/${brigadaSeleccionada}/asignar-conglomerado`,
+        `${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}/${brigadaSeleccionada}/asignar-conglomerado`,
         { id_conglomerado: parseInt(conglomeradoSeleccionado) }
       );
 
@@ -101,7 +102,7 @@ function AsignarBrigada() {
 
     try {
       const response = await axios.delete(
-        `http://localhost:3003/api/brigadas/${brigadaId}/asignar-conglomerado/${conglomeradoId}`
+        `${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}/${brigadaId}/asignar-conglomerado/${conglomeradoId}`
       );
 
       if (response.data.success) {

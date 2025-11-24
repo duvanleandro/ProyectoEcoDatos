@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import Layout from '../../components/common/Layout';
 import { Users, UserPlus, Trash2, Edit, CheckCircle, AlertCircle, X } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function GestionBrigadas() {
   const [brigadas, setBrigadas] = useState([]);
@@ -26,7 +27,7 @@ function GestionBrigadas() {
 
   const cargarBrigadas = async () => {
     try {
-      const response = await axios.get('http://localhost:3003/api/brigadas');
+      const response = await axios.get(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}`);
       if (response.data.success) {
         setBrigadas(response.data.data);
       }
@@ -37,7 +38,7 @@ function GestionBrigadas() {
 
   const cargarIntegrantes = async () => {
     try {
-      const response = await axios.get('http://localhost:3003/api/brigadas/integrantes');
+      const response = await axios.get(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.INTEGRANTES}`);
       if (response.data.success) {
         // Filtrar solo roles de brigada (excluir laboratorio, admin, coordinador)
         const integrantesBrigada = response.data.data.filter(integrante =>
@@ -56,7 +57,7 @@ function GestionBrigadas() {
     setMensaje('');
 
     try {
-      const response = await axios.post('http://localhost:3003/api/brigadas', nuevaBrigada);
+      const response = await axios.post(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}`, nuevaBrigada);
 
       if (response.data.success) {
         setMensaje('✅ ' + response.data.message);
@@ -77,7 +78,7 @@ function GestionBrigadas() {
     }
 
     try {
-      await axios.delete(`http://localhost:3003/api/brigadas/${id}`);
+      await axios.delete(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}/${id}`);
       setMensaje('✅ Brigada eliminada exitosamente');
       cargarBrigadas();
     } catch (error) {
@@ -88,10 +89,10 @@ function GestionBrigadas() {
   const handleSeleccionarBrigada = async (brigada) => {
     setBrigadaSeleccionada(brigada);
     setMostrarAsignarIntegrantes(true);
-    
+
     // Cargar integrantes actuales de la brigada
     try {
-      const response = await axios.get(`http://localhost:3003/api/brigadas/${brigada.id}`);
+      const response = await axios.get(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}/${brigada.id}`);
       if (response.data.success && response.data.data.integrantes) {
         setIntegrantesSeleccionados(response.data.data.integrantes.map(i => i.id));
       }
@@ -134,7 +135,7 @@ function GestionBrigadas() {
     try {
       // Usar el nuevo endpoint que asigna múltiples
       const response = await axios.post(
-        `http://localhost:3003/api/brigadas/${brigadaSeleccionada.id}/asignar-integrantes`,
+        `${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.BASE}/${brigadaSeleccionada.id}/asignar-integrantes`,
         { integrantes: integrantesSeleccionados }
       );
 

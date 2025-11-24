@@ -626,7 +626,7 @@ CREATE TABLE brigadaconglomerado (
 ### Prerequisitos
 
 - Node.js 20.x o superior
-- PostgreSQL 16 con PostGIS 3.5
+- PostgreSQL 16 con PostGIS 3.5 (o cuenta de Supabase)
 - npm o yarn
 - Git
 
@@ -638,6 +638,18 @@ cd ProyectoIntegrador/ecodatos-project
 ```
 
 ### 2. Configurar la Base de Datos
+
+#### Opción A: Usar Supabase (Recomendado para Producción)
+
+Supabase proporciona PostgreSQL con PostGIS ya configurado.
+
+**Pasos:**
+1. Crear cuenta en [Supabase](https://supabase.com)
+2. Crear nuevo proyecto
+3. Ejecutar el script `/database/init-supabase.sql` en el SQL Editor
+4. Copiar las credenciales de conexión
+
+#### Opción B: PostgreSQL Local (Desarrollo)
 
 ```bash
 # Conectar a PostgreSQL
@@ -653,7 +665,7 @@ CREATE DATABASE ecodatos;
 CREATE EXTENSION postgis;
 
 # Ejecutar el script de creación de tablas
-\i backend/database/schema.sql
+\i database/init-supabase.sql
 ```
 
 ### 3. Configurar Variables de Entorno

@@ -35,7 +35,7 @@ function IndicadoresReportes() {
     setLoading(true);
     try {
       // Cargar estadísticas de conglomerados
-      const responseCong = await axios.get('http://localhost:3002/api/conglomerados/estadisticas');
+      const responseCong = await axios.get(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.ESTADISTICAS}`);
       if (responseCong.data.success) {
         setEstadisticas(prev => ({
           ...prev,
@@ -44,7 +44,7 @@ function IndicadoresReportes() {
       }
 
       // Cargar estadísticas de brigadas
-      const responseBrig = await axios.get('http://localhost:3003/api/brigadas/estadisticas');
+      const responseBrig = await axios.get(`${API_CONFIG.BRIGADA_SERVICE}${ENDPOINTS.BRIGADA.ESTADISTICAS}`);
       if (responseBrig.data.success) {
         setEstadisticas(prev => ({
           ...prev,
@@ -53,7 +53,7 @@ function IndicadoresReportes() {
       }
 
       // Cargar estadísticas de usuarios
-      const responseUsuarios = await axios.get('http://localhost:3001/api/auth/estadisticas');
+      const responseUsuarios = await axios.get(`${API_CONFIG.AUTH_SERVICE}${ENDPOINTS.AUTH.ESTADISTICAS}`);
       if (responseUsuarios.data.success) {
         setEstadisticas(prev => ({
           ...prev,
@@ -62,7 +62,7 @@ function IndicadoresReportes() {
       }
 
       // Cargar observaciones para análisis climático
-      const responseObs = await axios.get('http://localhost:3005/api/observaciones');
+      const responseObs = await axios.get(`${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}`);
       if (responseObs.data.success) {
         const observaciones = responseObs.data.data;
         
@@ -86,7 +86,7 @@ function IndicadoresReportes() {
       }
 
       // Cargar estadísticas de especies
-      const responseEsp = await axios.get('http://localhost:3004/api/especies/estadisticas');
+      const responseEsp = await axios.get(`${API_CONFIG.ESPECIE_SERVICE}${ENDPOINTS.ESPECIE.ESTADISTICAS}`);
       if (responseEsp.data.success) {
         setEstadisticas(prev => ({
           ...prev,

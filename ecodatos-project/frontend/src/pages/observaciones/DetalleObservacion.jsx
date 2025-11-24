@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/common/Layout';
 import { ArrowLeft, MapPin, CloudRain, TreePine, Camera, CheckCircle, Clock, User } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function DetalleObservacion() {
   const { id } = useParams();
@@ -22,7 +23,7 @@ function DetalleObservacion() {
   const cargarObservacion = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:3005/api/observaciones/${id}`);
+      const response = await axios.get(`${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${id}`);
       
       if (response.data.success) {
         const obs = response.data.data;
@@ -30,7 +31,7 @@ function DetalleObservacion() {
         
         // Cargar datos del conglomerado
         if (obs.id_conglomerado) {
-          const responseCong = await axios.get(`http://localhost:3002/api/conglomerados/${obs.id_conglomerado}`);
+          const responseCong = await axios.get(`${API_CONFIG.CONGLOMERADO_SERVICE}${ENDPOINTS.CONGLOMERADO.BASE}/${obs.id_conglomerado}`);
           if (responseCong.data.success) {
             setConglomerado(responseCong.data.data);
           }
@@ -48,7 +49,7 @@ function DetalleObservacion() {
     
     try {
       const response = await axios.put(
-        `http://localhost:3005/api/observaciones/${id}/validar-admin`,
+        `${API_CONFIG.OBSERVACION_SERVICE}${ENDPOINTS.OBSERVACION.BASE}/${id}/validar-admin`,
         { idUsuario: usuario.id }
       );
       
@@ -229,10 +230,10 @@ function DetalleObservacion() {
                   <div 
                     key={index} 
                     className="relative group cursor-pointer"
-                    onClick={() => setImagenAmpliada(`http://localhost:3005/uploads/observaciones/${observacion.id}/${foto}`)}
+                    onClick={() => setImagenAmpliada(`${API_CONFIG.OBSERVACION_SERVICE}/uploads/observaciones/${observacion.id}/${foto}`)}
                   >
                     <img
-                      src={`http://localhost:3005/uploads/observaciones/${observacion.id}/${foto}`}
+                      src={`${API_CONFIG.OBSERVACION_SERVICE}/uploads/observaciones/${observacion.id}/${foto}`}
                       alt={`Foto ${index + 1}`}
                       className="w-full h-40 object-cover rounded-lg border hover:opacity-80 transition-opacity"
                     />

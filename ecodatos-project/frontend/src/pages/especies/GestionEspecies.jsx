@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import Layout from '../../components/common/Layout';
 import { FlaskConical, Plus, Search, Edit, Trash2, X } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../config/axios';
+import { API_CONFIG, ENDPOINTS } from '../../config/api';
 
 function GestionEspecies() {
   const [especies, setEspecies] = useState([]);
@@ -27,7 +28,7 @@ function GestionEspecies() {
 
   const cargarEspecies = async () => {
     try {
-      const response = await axios.get('http://localhost:3004/api/especies');
+      const response = await axios.get(`${API_CONFIG.ESPECIE_SERVICE}${ENDPOINTS.ESPECIE.BASE}`);
       if (response.data.success) {
         setEspecies(response.data.data);
       }
@@ -45,7 +46,7 @@ function GestionEspecies() {
       if (especieEditando) {
         // Actualizar
         const response = await axios.put(
-          `http://localhost:3004/api/especies/${especieEditando.id}`,
+          `${API_CONFIG.ESPECIE_SERVICE}${ENDPOINTS.ESPECIE.BASE}/${especieEditando.id}`,
           formData
         );
         if (response.data.success) {
@@ -53,7 +54,7 @@ function GestionEspecies() {
         }
       } else {
         // Crear
-        const response = await axios.post('http://localhost:3004/api/especies', formData);
+        const response = await axios.post(`${API_CONFIG.ESPECIE_SERVICE}${ENDPOINTS.ESPECIE.BASE}`, formData);
         if (response.data.success) {
           setMensaje('✅ Especie creada exitosamente');
         }
@@ -86,7 +87,7 @@ function GestionEspecies() {
     if (!window.confirm(`¿Eliminar la especie "${nombre}"?`)) return;
 
     try {
-      await axios.delete(`http://localhost:3004/api/especies/${id}`);
+      await axios.delete(`${API_CONFIG.ESPECIE_SERVICE}${ENDPOINTS.ESPECIE.BASE}/${id}`);
       setMensaje('✅ Especie eliminada exitosamente');
       cargarEspecies();
     } catch (error) {

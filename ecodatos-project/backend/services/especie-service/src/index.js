@@ -7,8 +7,34 @@ const especieRoutes = require('./routes/especieRoutes');
 const app = express();
 const PORT = process.env.PORT || 3004;
 
+// Configuración de CORS
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Lista de orígenes permitidos desde variable de entorno o valores por defecto
+    const allowedOrigins = process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(',')
+      : [
+          'http://localhost:5173',
+          'http://localhost:3000',
+          'https://ecodatos.vercel.app'
+        ];
+
+    // Permitir requests sin origin (mobile apps, Postman, curl, etc.)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`🚫 Origen bloqueado por CORS: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
 // Middlewares
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Rutas
