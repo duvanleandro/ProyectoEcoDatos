@@ -20,7 +20,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
 
-  // Menú para Admin - Sección de Administración
+  // Menú para Admin y Coordinador - Sección de Administración
   const menuAdministracion = [
     {
       title: 'Gestión de Usuarios',
@@ -28,7 +28,7 @@ function Dashboard() {
       description: 'Crear y administrar usuarios del sistema',
       path: '/admin/usuarios',
       color: 'bg-purple-600 hover:bg-purple-700',
-      badge: 'ADMIN'
+      badge: 'GESTIÓN'
     },
     {
       title: 'Gestión de Brigadas',
@@ -36,7 +36,7 @@ function Dashboard() {
       description: 'Crear brigadas y asignar integrantes',
       path: '/brigadas/gestion',
       color: 'bg-blue-600 hover:bg-blue-700',
-      badge: 'ADMIN'
+      badge: 'GESTIÓN'
     }
   ];
 
@@ -235,8 +235,8 @@ Bienvenido, {usuario.nombre_apellidos || usuario.usuario}. Selecciona una opció
           </div>
         )}
 
-        {/* Menú especial para Admin - Solo Administración */}
-        {usuario.tipo_usuario === 'admin' && (
+        {/* Menú especial para Admin y Coordinador - Administración */}
+        {['admin', 'coordinador'].includes(usuario.tipo_usuario) && (
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
               <UserCog className="w-6 h-6 text-purple-600" />
@@ -333,11 +333,11 @@ Bienvenido, {usuario.nombre_apellidos || usuario.usuario}. Selecciona una opció
         <div className="mt-6 bg-blue-50 border border-blue-200 p-4 rounded-lg">
           <h3 className="font-bold text-blue-900 mb-2">💡 Guía rápida</h3>
           <p className="text-sm text-blue-800">
-            {['admin', 'coordinador'].includes(usuario.tipo_usuario) && 
-              'Como administrador, puedes gestionar todo el sistema: crear usuarios, brigadas, generar conglomerados, validar observaciones y asignarlos a las brigadas de campo.'}
-            {['jefe_brigada', 'botanico', 'tecnico_auxiliar', 'coinvestigador'].includes(usuario.tipo_usuario) && 
+            {['admin', 'coordinador'].includes(usuario.tipo_usuario) &&
+              'Como administrador o coordinador, puedes gestionar todo el sistema: crear usuarios, brigadas, generar conglomerados, validar observaciones y asignarlos a las brigadas de campo.'}
+            {['jefe_brigada', 'botanico', 'tecnico_auxiliar', 'coinvestigador'].includes(usuario.tipo_usuario) &&
               'Como brigadista, puedes ver los conglomerados asignados a tu brigada, registrar observaciones de campo y consultar el catálogo de especies forestales.'}
-            {usuario.tipo_usuario === 'laboratorio' && 
+            {usuario.tipo_usuario === 'laboratorio' &&
               'Como personal de laboratorio, puedes clasificar taxonómicamente las muestras recibidas del campo, asignándoles su nombre científico correspondiente.'}
           </p>
         </div>

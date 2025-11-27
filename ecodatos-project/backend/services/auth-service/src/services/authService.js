@@ -93,15 +93,15 @@ async login(usuario, contrasena) {
   }
 
   /**
-   * Crear usuario (solo admin)
+   * Crear usuario (admin y coordinador)
    */
   async crearUsuario(usuarioData, adminId) {
     const { usuario, contrasena, tipo_usuario, nombre_apellidos, telefono, email, especialidad } = usuarioData;
 
-    // Verificar que quien crea sea admin
+    // Verificar que quien crea sea admin o coordinador
     const admin = await Usuario.findByPk(adminId);
-    if (!admin || admin.tipo_usuario !== 'admin') {
-      throw new Error('Solo los administradores pueden crear usuarios');
+    if (!admin || !['admin', 'coordinador'].includes(admin.tipo_usuario)) {
+      throw new Error('Solo los administradores y coordinadores pueden crear usuarios');
     }
 
     // Verificar si el usuario ya existe
@@ -152,12 +152,12 @@ async login(usuario, contrasena) {
   }
 
   /**
-   * Listar todos los usuarios (solo admin)
+   * Listar todos los usuarios (admin y coordinador)
    */
   async listarUsuarios(adminId) {
     const admin = await Usuario.findByPk(adminId);
-    if (!admin || admin.tipo_usuario !== 'admin') {
-      throw new Error('Solo los administradores pueden listar usuarios');
+    if (!admin || !['admin', 'coordinador'].includes(admin.tipo_usuario)) {
+      throw new Error('Solo los administradores y coordinadores pueden listar usuarios');
     }
 
     const { sequelize } = require('../config/database');
@@ -184,12 +184,12 @@ async login(usuario, contrasena) {
   }
 
   /**
-   * Eliminar usuario (solo admin)
+   * Eliminar usuario (admin y coordinador)
    */
   async eliminarUsuario(userId, adminId) {
     const admin = await Usuario.findByPk(adminId);
-    if (!admin || admin.tipo_usuario !== 'admin') {
-      throw new Error('Solo los administradores pueden eliminar usuarios');
+    if (!admin || !['admin', 'coordinador'].includes(admin.tipo_usuario)) {
+      throw new Error('Solo los administradores y coordinadores pueden eliminar usuarios');
     }
 
     const usuario = await Usuario.findByPk(userId);
@@ -237,12 +237,12 @@ async login(usuario, contrasena) {
   }
 
   /**
-   * Editar usuario (solo admin)
+   * Editar usuario (admin y coordinador)
    */
   async editarUsuario(userId, usuarioData, adminId) {
     const admin = await Usuario.findByPk(adminId);
-    if (!admin || admin.tipo_usuario !== 'admin') {
-      throw new Error('Solo los administradores pueden editar usuarios');
+    if (!admin || !['admin', 'coordinador'].includes(admin.tipo_usuario)) {
+      throw new Error('Solo los administradores y coordinadores pueden editar usuarios');
     }
 
     const usuario = await Usuario.findByPk(userId);
@@ -298,12 +298,12 @@ async login(usuario, contrasena) {
   }
 
   /**
-   * Desactivar/Activar usuario (solo admin)
+   * Desactivar/Activar usuario (admin y coordinador)
    */
   async toggleActivarUsuario(userId, adminId) {
     const admin = await Usuario.findByPk(adminId);
-    if (!admin || admin.tipo_usuario !== 'admin') {
-      throw new Error('Solo los administradores pueden desactivar usuarios');
+    if (!admin || !['admin', 'coordinador'].includes(admin.tipo_usuario)) {
+      throw new Error('Solo los administradores y coordinadores pueden desactivar usuarios');
     }
 
     const usuario = await Usuario.findByPk(userId);
@@ -355,11 +355,11 @@ async login(usuario, contrasena) {
   }
 
   /**
-   * Restablecer contraseña (por admin)
+   * Restablecer contraseña (admin y coordinador)
    */
   async restablecerContrasena(idUsuario, nuevaContrasena, idAdmin) {
     const admin = await Usuario.findByPk(idAdmin);
-    if (!admin || admin.tipo_usuario !== 'admin') {
+    if (!admin || !['admin', 'coordinador'].includes(admin.tipo_usuario)) {
       throw new Error('No tienes permisos para restablecer contraseñas');
     }
 
